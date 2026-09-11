@@ -121,6 +121,12 @@ encomenda não tem estoque pra acabar. Na sacola o tamanho vai como `Kids 6`,
 pra Mayara ler certo no pedido. Spec:
 `docs/superpowers/specs/2026-09-11-linha-kids-como-variante-design.md`.
 
+**Efeito colateral que vale saber.** `temEstoque` passou a significar "dá pra
+pedir", não "tem peça na arara". Ele alimenta o selo "Esgotado" da vitrine e o
+`availability` do schema.org em `lib/jsonld.tsx`. Com `temKids` ligado, o
+produto é `InStock` pro Google mesmo com todo adulto esgotado — e desligar o
+`temKids` de uma peça muda isso junto.
+
 ---
 
 ## 9. Um deploy por cliente. Sem multi-tenant.
