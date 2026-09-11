@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { Produto } from '@/lib/tipos'
 import { formatarCentavos } from '@/lib/preco'
+import { temEstoque } from '@/lib/catalogo'
+import { rotuloKids, tamanhosKids, temVariante } from '@/lib/variantes'
 import { useSacola } from '@/components/CartProvider'
 import ImagemSlot from '@/components/ImagemSlot'
 
@@ -12,8 +14,8 @@ export default function ProductCard({ produto }: { produto: Produto }) {
   const [escolhendoTamanho, setEscolhendoTamanho] = useState(false)
 
   const foto = produto.imagens[0]
-  const disponiveis = produto.tamanhos.filter((t) => t.disponivel)
-  const esgotado = produto.tamanhos.length > 0 && disponiveis.length === 0
+  const kids = tamanhosKids(produto)
+  const esgotado = !temEstoque(produto)
 
   function adicionarNaSacola(tamanho?: string) {
     adicionar({
@@ -28,9 +30,9 @@ export default function ProductCard({ produto }: { produto: Produto }) {
     setEscolhendoTamanho(false)
   }
 
-  // peca com tamanho pede a escolha antes de entrar na sacola
+  // peca com tamanho (adulto ou kids) pede a escolha antes de entrar na sacola
   function aoClicar() {
-    if (produto.tamanhos.length) setEscolhendoTamanho((v) => !v)
+    if (temVariante(produto)) setEscolhendoTamanho((v) => !v)
     else adicionarNaSacola()
   }
 
@@ -64,24 +66,44 @@ export default function ProductCard({ produto }: { produto: Produto }) {
       </Link>
 
       <div className="mt-auto pt-3">
-        {escolhendoTamanho && produto.tamanhos.length ? (
-          <div className="flex gap-1">
-            {produto.tamanhos.map(({ tamanho, disponivel }) => (
-              <button
-                key={tamanho}
-                type="button"
-                disabled={!disponivel}
-                onClick={() => adicionarNaSacola(tamanho)}
-                aria-label={disponivel ? `Adicionar tamanho ${tamanho}` : `Tamanho ${tamanho} esgotado`}
-                className={
-                  disponivel
-                    ? 'flex-1 border border-terra py-2 text-xs text-terra transition hover:border-laranja hover:bg-laranja hover:text-grafite'
-                    : 'flex-1 cursor-not-allowed border border-grafite/15 py-2 text-xs text-grafite/30 line-through'
-                }
-              >
-                {tamanho}
-              </button>
-            ))}
+        {escolhendoTamanho && temVariante(produto) ? (
+          <div className="space-y-1">
+            {produto.tamanhos.length > 0 && (
+              <div className="flex gap-1">
+                {produto.tamanhos.map(({ tamanho, disponivel }) => (
+                  <button
+                    key={tamanho}
+                    type="button"
+                    disabled={!disponivel}
+                    onClick={() => adicionarNaSacola(tamanho)}
+                    aria-label={disponivel ? `Adicionar tamanho ${tamanho}` : `Tamanho ${tamanho} esgotado`}
+                    className={
+                      disponivel
+                        ? 'flex-1 border border-terra py-2 text-xs text-terra transition hover:border-laranja hover:bg-laranja hover:text-grafite'
+                        : 'flex-1 cursor-not-allowed border border-grafite/15 py-2 text-xs text-grafite/30 line-through'
+                    }
+                  >
+                    {tamanho}
+                  </button>
+                ))}
+              </div>
+            )}
+            {kids.length > 0 && (
+              <div className="flex items-center gap-1">
+                <span className="w-8 text-[10px] uppercase tracking-wide text-grafite/60">kids</span>
+                {kids.map((tamanho) => (
+                  <button
+                    key={tamanho}
+                    type="button"
+                    onClick={() => adicionarNaSacola(rotuloKids(tamanho))}
+                    aria-label={`Adicionar tamanho kids ${tamanho}`}
+                    className="flex-1 border border-terra py-2 text-xs text-terra transition hover:border-laranja hover:bg-laranja hover:text-grafite"
+                  >
+                    {tamanho}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <button
