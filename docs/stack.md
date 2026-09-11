@@ -79,6 +79,7 @@ em cima dela. Está no `package.json` porque o Tailwind exige.
 | **Node.js** | 24.18.0 | O programa que roda JavaScript fora do navegador. É o que executa `npm run dev` e `npm run build`. Não vai pro ar — é só a ferramenta de trabalho. |
 | **npm** | — | Instala as bibliotecas. `package-lock.json` grava a versão exata de cada uma; é ele que faz sua máquina e o servidor de build instalarem exatamente o mesmo código. |
 | **ESLint** 8.57.1 + `eslint-config-next` | | Aponta erro de código antes de rodar. |
+| **Vitest** 3 | | Roda os testes de `loja/lib/*.test.ts`. Só lógica pura: não há teste de componente nem de navegador. `npm test`. |
 
 ---
 

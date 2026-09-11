@@ -110,9 +110,16 @@ custa caro no dia em que alguém tentar usar de verdade.
 
 ## 8. A grade de tamanhos é por produto, não fixa.
 
-**Por quê.** A Linha Kids não usa P/M/G/GG, usa idade (2/4/6/8/10). Uma grade
-fixa quebraria a categoria inteira e a correção viraria migração com o catálogo
-já povoado.
+**Por quê.** Nem toda peça usa P/M/G/GG, e uma grade fixa viraria migração
+com o catálogo já povoado no dia em que a primeira exceção aparecer.
+
+**Kids não é grade, é variante.** A Linha Kids começou como categoria própria e
+saiu (11/09/2026): a Eme Praia faz sob encomenda, então o mesmo biquíni sai em
+adulto e em kids. Cada produto tem um `temKids` sim/não. Os tamanhos kids
+(4/6/8/10/12) são fixos em `loja.config.ts` e **nunca esgotam**, porque sob
+encomenda não tem estoque pra acabar. Na sacola o tamanho vai como `Kids 6`,
+pra Mayara ler certo no pedido. Spec:
+`docs/superpowers/specs/2026-09-11-linha-kids-como-variante-design.md`.
 
 ---
 

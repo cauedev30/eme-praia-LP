@@ -21,6 +21,9 @@ Próximo: Fase 1 (D1 + seed + `/api/catalogo.json`).
 ## Pendências antes do lançamento
 
 - [ ] `loja.config.ts`: WhatsApp, Instagram e domínio reais da Mayara
+- [ ] `loja.config.ts`: confirmar com a Mayara a grade kids (`gradeKids`,
+      hoje 4/6/8/10/12) e se toda peça sai em kids (senão, desligar
+      `temKids` nas que não saem)
 - [ ] **Texto repetido**: "Seu verão começa aqui." está no hero e também
       no FeatureBanner do meio da home. Decidir qual dos dois muda.
 - [x] Logo da Eme Praia — os dois arquivos vêm de `imagens/logos/` sem
@@ -41,8 +44,8 @@ Próximo: Fase 1 (D1 + seed + `/api/catalogo.json`).
 - [ ] **Todas as fotos de catálogo** — `public/` hoje tem só a hero-1 e os
       dois logos. Nenhuma imagem do i love bikini ficou no repo.
       Sem foto, o `ImagemSlot` desenha um retângulo tracejado no lugar:
-      3 categorias, 17 produtos e o banner do meio da home.
-      Falta: fotos de produto, capa das 3 categorias e foto do banner.
+      2 categorias, 17 produtos e o banner do meio da home.
+      Falta: fotos de produto, capa das 2 categorias e foto do banner.
 - [ ] Catálogo real — os 17 produtos atuais são fixtures herdados
 - [x] Paleta (`tailwind.config.ts`) — creme/areia/bronze/carvao/noturno saíram.
       A paleta agora é só a marca: `laranja`+`grafite` do selo, mais `terra`
@@ -55,7 +58,7 @@ Próximo: Fase 1 (D1 + seed + `/api/catalogo.json`).
 ## Verificações que valem repetir a cada mudança grande
 
 ```bash
-cd loja && npm run build
+cd loja && npm test && npm run build
 ```
 
 Depois, sobre `loja/out/`:
@@ -64,6 +67,8 @@ Depois, sobre `loja/out/`:
 - Produto com `ativo: false` **não** gera HTML, sai do sitemap e sai da home
 - Tamanho com `disponivel: false` sai riscado e com o botão desabilitado
 - `sitemap.xml` e `robots.txt` existem e apontam pro domínio certo
+- Produto com adulto todo esgotado e `temKids: true` **não** aparece como
+  esgotado; a fileira "Linha kids" continua clicável
 
 ## Quando algo quebrar
 

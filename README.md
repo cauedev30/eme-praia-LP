@@ -44,7 +44,7 @@ Dentro de `loja/`:
 |---|---|
 | `loja.config.ts` | **O único arquivo que muda de cliente pra cliente.** Nome, WhatsApp, Instagram, domínio, grades de tamanho |
 | `app/` | As rotas. Cada pasta vira um endereço |
-| `app/[categoria]/` | Uma rota só serve `/biquinis`, `/maio`, `/linha-kids` e as futuras |
+| `app/[categoria]/` | Uma rota só serve `/biquinis`, `/maio` e as futuras |
 | `app/produto/[slug]/` | A página de cada peça, com título e descrição próprios |
 | `components/` | As peças da tela |
 | `lib/catalogo.ts` | **A fronteira dos dados.** Ver abaixo |
