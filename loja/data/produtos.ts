@@ -6,8 +6,6 @@ import type { Produto, Tamanho } from '@/lib/tipos'
 // de fixture ate o catalogo real da Eme Praia entrar. Os 3 chapeus foram
 // removidos: nao cabem em nenhuma das categorias da Eme Praia.
 //
-// A Linha Kids nasce vazia de proposito — a pagina de categoria trata isso.
-//
 // Na Fase 1 este arquivo e APAGADO: um script gera o seed do D1 a partir dele
 // e o catalogo passa a vir do banco.
 
@@ -29,6 +27,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 1,
+    temKids: true,
     ativo: true,
   },
   {
@@ -42,6 +41,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 2,
+    temKids: true,
     ativo: true,
   },
   {
@@ -55,6 +55,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 3,
+    temKids: true,
     ativo: true,
   },
   {
@@ -68,6 +69,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 4,
+    temKids: true,
     ativo: true,
   },
   {
@@ -81,6 +83,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 5,
+    temKids: true,
     ativo: true,
   },
   {
@@ -94,6 +97,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 6,
+    temKids: true,
     ativo: true,
   },
   {
@@ -107,6 +111,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 7,
+    temKids: true,
     ativo: true,
   },
   {
@@ -120,6 +125,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 8,
+    temKids: true,
     ativo: true,
   },
 
@@ -135,6 +141,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 1,
+    temKids: true,
     ativo: true,
   },
   {
@@ -148,6 +155,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 2,
+    temKids: true,
     ativo: true,
   },
   {
@@ -161,6 +169,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 3,
+    temKids: true,
     ativo: true,
   },
   {
@@ -174,6 +183,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 4,
+    temKids: true,
     ativo: true,
   },
   {
@@ -187,6 +197,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 5,
+    temKids: true,
     ativo: true,
   },
   {
@@ -200,6 +211,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 6,
+    temKids: true,
     ativo: true,
   },
   {
@@ -213,6 +225,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 7,
+    temKids: true,
     ativo: true,
   },
   {
@@ -226,6 +239,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 8,
+    temKids: true,
     ativo: true,
   },
   {
@@ -239,6 +253,7 @@ export const produtos: Produto[] = [
     imagens: [],
     tamanhos: grade(ADULTO),
     ordem: 9,
+    temKids: true,
     ativo: true,
   },
 ]

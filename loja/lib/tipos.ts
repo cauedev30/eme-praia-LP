@@ -26,6 +26,10 @@ export type Produto = {
   imagens: string[]
   /** Vazio = produto sem grade de tamanho. */
   tamanhos: Tamanho[]
+  /** A mesma peca tambem sai em tamanho kids, sob encomenda. A grade kids
+   *  e fixa (loja.config.ts -> gradeKids) e nunca esgota — por isso nao
+   *  entra em `tamanhos`. */
+  temKids: boolean
   ordem: number
   ativo: boolean
 }

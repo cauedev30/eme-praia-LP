@@ -20,13 +20,4 @@ export const categorias: Categoria[] = [
     ordem: 2,
     ativo: true,
   },
-  {
-    id: 'linha-kids',
-    slug: 'linha-kids',
-    nome: 'Linha Kids',
-    // TODO(Cauê): trocar pela foto real da linha kids da Eme Praia.
-    imagem: '',
-    ordem: 3,
-    ativo: true,
-  },
 ]

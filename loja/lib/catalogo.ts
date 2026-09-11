@@ -35,7 +35,12 @@ export async function getProdutosPorCategoria(slug: string): Promise<Produto[]> 
 }
 
 /** Um produto so esta a venda se tiver ao menos um tamanho disponivel.
- *  Produto sem grade (tamanhos vazio) esta sempre disponivel. */
+ *  Produto sem grade (tamanhos vazio) esta sempre disponivel. Produto com
+ *  kids tambem: kids e sob encomenda e nunca esgota. */
 export function temEstoque(produto: Produto) {
-  return produto.tamanhos.length === 0 || produto.tamanhos.some((t) => t.disponivel)
+  return (
+    produto.temKids ||
+    produto.tamanhos.length === 0 ||
+    produto.tamanhos.some((t) => t.disponivel)
+  )
 }
