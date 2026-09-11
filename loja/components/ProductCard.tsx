@@ -89,20 +89,22 @@ export default function ProductCard({ produto }: { produto: Produto }) {
               </div>
             )}
             {kids.length > 0 && (
-              <div title="Linha kids, sob encomenda" className="flex items-center gap-1">
-                <span className="w-8 text-[10px] uppercase tracking-wide text-grafite/60">kids</span>
-                {kids.map((tamanho) => (
-                  <button
-                    key={tamanho}
-                    type="button"
-                    title="Sob encomenda"
-                    onClick={() => adicionarNaSacola(rotuloKids(tamanho))}
-                    aria-label={`Adicionar tamanho kids ${tamanho}`}
-                    className="flex-1 border border-terra py-2 text-xs text-terra transition hover:border-laranja hover:bg-laranja hover:text-grafite"
-                  >
-                    {tamanho}
-                  </button>
-                ))}
+              <div title="Linha kids, sob encomenda">
+                <p className="mb-1 text-[10px] uppercase tracking-wide text-grafite/60">Kids · sob encomenda</p>
+                <div className="flex gap-1">
+                  {kids.map((tamanho) => (
+                    <button
+                      key={tamanho}
+                      type="button"
+                      title="Sob encomenda"
+                      onClick={() => adicionarNaSacola(rotuloKids(tamanho))}
+                      aria-label={`Adicionar tamanho kids ${tamanho}`}
+                      className="flex-1 border border-terra py-2 text-xs text-terra transition hover:border-laranja hover:bg-laranja hover:text-grafite"
+                    >
+                      {tamanho}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
