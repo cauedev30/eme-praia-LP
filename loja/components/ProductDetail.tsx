@@ -3,19 +3,23 @@
 import { useState } from 'react'
 import type { Produto } from '@/lib/tipos'
 import { formatarCentavos, parcelamento } from '@/lib/preco'
+import { temEstoque } from '@/lib/catalogo'
+import { rotuloKids, selecaoInicial, tamanhosKids, temVariante } from '@/lib/variantes'
 import { useSacola } from '@/components/CartProvider'
 import BackButton from '@/components/BackButton'
 import ImagemSlot from '@/components/ImagemSlot'
 
 export default function ProductDetail({ produto }: { produto: Produto }) {
-  const primeiroDisponivel = produto.tamanhos.find((t) => t.disponivel)?.tamanho
-  const [tamanhoSelecionado, setTamanhoSelecionado] = useState(primeiroDisponivel)
+  // Uma selecao so: 'M' ou 'Kids 6'. Clicar num desmarca o outro.
+  const [tamanhoSelecionado, setTamanhoSelecionado] = useState(selecaoInicial(produto))
   const [quantidade, setQuantidade] = useState(1)
   const { adicionar } = useSacola()
 
   const temGrade = produto.tamanhos.length > 0
-  const esgotado = temGrade && !produto.tamanhos.some((t) => t.disponivel)
-  const podeAdicionar = !esgotado && (!temGrade || Boolean(tamanhoSelecionado))
+  const kids = tamanhosKids(produto)
+  const esgotado = !temEstoque(produto)
+  const precisaEscolher = temVariante(produto) && !tamanhoSelecionado
+  const podeAdicionar = !esgotado && !precisaEscolher
 
   function adicionarNaSacola() {
     if (!podeAdicionar) return
@@ -98,6 +102,33 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
             </div>
           )}
 
+          {kids.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-wide text-grafite/60">Linha kids</p>
+              <div className="flex gap-2">
+                {kids.map((tamanho) => {
+                  const valor = rotuloKids(tamanho)
+                  return (
+                    <button
+                      key={valor}
+                      type="button"
+                      onClick={() => setTamanhoSelecionado(valor)}
+                      aria-label={`Tamanho kids ${tamanho}`}
+                      className={
+                        tamanhoSelecionado === valor
+                          ? 'h-9 min-w-9 border border-grafite bg-grafite px-2 text-sm text-gelo'
+                          : 'h-9 min-w-9 border border-grafite/30 px-2 text-sm text-grafite'
+                      }
+                    >
+                      {tamanho}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-2 text-xs text-grafite/60">Sob encomenda.</p>
+            </div>
+          )}
+
           <div>
             <p className="mb-2 text-xs uppercase tracking-wide text-grafite/60">Quantidade</p>
             <div className="flex items-center gap-3">
@@ -131,7 +162,7 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
                 : 'w-full cursor-not-allowed bg-grafite/15 py-3 text-sm uppercase tracking-widest text-grafite/40'
             }
           >
-            {esgotado ? 'Esgotado' : 'Adicionar à sacola'}
+            {esgotado ? 'Esgotado' : precisaEscolher ? 'Escolha o tamanho' : 'Adicionar à sacola'}
           </button>
         </div>
       </div>
