@@ -37,7 +37,7 @@ export default function ProductCard({ produto }: { produto: Produto }) {
   return (
     <div className="flex h-full flex-col">
       <Link href={`/produto/${produto.slug}`} className="block">
-        <div className="relative aspect-[4/5] overflow-hidden bg-carvao/5">
+        <div className="relative aspect-[4/5] overflow-hidden bg-grafite/5">
           {foto ? (
             <img
               src={foto}
@@ -52,7 +52,7 @@ export default function ProductCard({ produto }: { produto: Produto }) {
             <ImagemSlot rotulo="Foto do produto" />
           )}
           {esgotado && (
-            <span className="absolute left-2 top-2 bg-carvao/80 px-2 py-1 text-[10px] uppercase tracking-wide text-creme">
+            <span className="absolute left-2 top-2 bg-grafite/80 px-2 py-1 text-[10px] uppercase tracking-wide text-gelo">
               Esgotado
             </span>
           )}
@@ -75,8 +75,8 @@ export default function ProductCard({ produto }: { produto: Produto }) {
                 aria-label={disponivel ? `Adicionar tamanho ${tamanho}` : `Tamanho ${tamanho} esgotado`}
                 className={
                   disponivel
-                    ? 'flex-1 border border-bronze py-2 text-xs text-bronze transition hover:bg-bronze hover:text-creme'
-                    : 'flex-1 cursor-not-allowed border border-carvao/15 py-2 text-xs text-carvao/30 line-through'
+                    ? 'flex-1 border border-terra py-2 text-xs text-terra transition hover:border-laranja hover:bg-laranja hover:text-grafite'
+                    : 'flex-1 cursor-not-allowed border border-grafite/15 py-2 text-xs text-grafite/30 line-through'
                 }
               >
                 {tamanho}
@@ -90,8 +90,8 @@ export default function ProductCard({ produto }: { produto: Produto }) {
             disabled={esgotado}
             className={
               esgotado
-                ? 'w-full cursor-not-allowed bg-carvao/15 py-2 text-xs uppercase tracking-wide text-carvao/40'
-                : 'w-full bg-bronze py-2 text-xs uppercase tracking-wide text-creme transition hover:bg-carvao'
+                ? 'w-full cursor-not-allowed bg-grafite/15 py-2 text-xs uppercase tracking-wide text-grafite/40'
+                : 'w-full border border-grafite py-2 text-xs uppercase tracking-wide text-grafite transition hover:border-laranja hover:bg-laranja'
             }
           >
             {esgotado ? 'Esgotado' : 'Adicionar à sacola'}

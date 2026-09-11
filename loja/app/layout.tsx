@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${fraunces.variable} ${jost.variable} font-sans bg-creme text-carvao`}>
+      <body className={`${fraunces.variable} ${jost.variable} font-sans bg-gelo text-grafite`}>
         <ScriptJsonLd dados={jsonLdLoja()} />
         <CartProvider>
           <Header />

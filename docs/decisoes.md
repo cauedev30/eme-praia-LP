@@ -189,6 +189,32 @@ mostrar ícone de imagem quebrada.
 
 ---
 
+## 12. Laranja preenche. Terra escreve.
+
+A paleta saiu do selo — laranja de fundo, grafite recortado por dentro. Só que
+o laranja da marca (`#FB7F20`) dá **2,5:1** sobre fundo claro: como texto ele
+some. Então existem duas laranjas e cada uma tem um lugar fixo:
+
+| | Onde | Contraste |
+|---|---|---|
+| `laranja` `#FB7F20` | preenchimento: CTA, sacola, badge — e como texto **só** em fundo escuro | 4,98:1 sobre grafite · 6,40:1 sobre breu |
+| `terra` `#B35207` | a única laranja que vira tinta em fundo claro | 4,88:1 sobre gelo |
+
+**Por quê.** A paleta anterior era a da i love bikini (creme/areia/bronze):
+bege sobre bege, o bronze do botão dava 2,92:1 com o texto por cima. Trocar
+bronze por laranja um-por-um resolveria o contraste e criaria outro problema —
+o botão "Adicionar à sacola" se repete 8 vezes por tela na grade, e oito barras
+laranja abafam a foto do produto, que é o que precisa gritar numa loja. Por
+isso o botão do card é contorno de grafite e só preenche laranja no hover.
+
+**O custo.** Duas laranjas na paleta em vez de uma, e alguém pode usar a errada.
+É o preço de ter uma marca de cor forte e um site de fundo claro.
+
+**Hover é o selo invertido:** laranja/grafite troca pra grafite/laranja. Mesmo
+contraste nos dois estados (4,98:1), e não precisa de uma terceira laranja.
+
+---
+
 ## Bugs herdados que foram corrigidos
 
 O código veio do `ilovebkn-site`, uma loja já entregue. Estes problemas vieram
@@ -202,3 +228,4 @@ junto e foram consertados na migração:
 | Categoria estava escrita em três lugares e cada uma tinha sua pasta de rota | Uma rota dinâmica só, `app/[categoria]/page.tsx`. Categoria nova aparece sozinha, inclusive no menu. |
 | As 20 páginas dividiam o mesmo `<title>` | `generateMetadata()` por produto. Sem isso a loja não existe no Google. |
 | O menu apontava para `/acessorios`, categoria que não existe mais | O menu passou a ser gerado a partir das categorias. |
+| O botão de finalizar desabilitado era texto creme sobre cinza claro — sumia | Passou a usar o mesmo par dos outros estados desabilitados (`bg-grafite/15` + `text-grafite/40`). |

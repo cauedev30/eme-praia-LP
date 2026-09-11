@@ -23,7 +23,7 @@ export default async function ProductFeed() {
     <section id="promocao" className="mx-auto max-w-6xl scroll-mt-6 px-6 py-12">
       <div className="mb-6 flex items-baseline justify-between">
         <h2 className="font-serif text-2xl">Promoção</h2>
-        <span className="text-xs uppercase tracking-wide text-carvao/50">
+        <span className="text-xs uppercase tracking-wide text-grafite/50">
           {itens.length} {itens.length === 1 ? 'peça' : 'peças'}
         </span>
       </div>

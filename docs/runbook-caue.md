@@ -44,8 +44,12 @@ Próximo: Fase 1 (D1 + seed + `/api/catalogo.json`).
       3 categorias, 17 produtos e o banner do meio da home.
       Falta: fotos de produto, capa das 3 categorias e foto do banner.
 - [ ] Catálogo real — os 17 produtos atuais são fixtures herdados
-- [ ] Paleta e fontes (`tailwind.config.ts`) — `laranja`/`grafite` já são as
-      cores reais da marca; creme/areia/bronze ainda são da i love bikini
+- [x] Paleta (`tailwind.config.ts`) — creme/areia/bronze/carvao/noturno saíram.
+      A paleta agora é só a marca: `laranja`+`grafite` do selo, mais `terra`
+      (laranja escurecido pra virar tinta), `breu`, `gelo` e `concha`.
+      A regra que segura ela está na decisão 12. Se for mexer, remedir contraste.
+- [ ] Fontes (`tailwind.config.ts`) — Fraunces/Jost ainda são herdadas da
+      i love bikini; nunca foram conferidas contra a marca da Eme
 - [ ] Domínio registrado **no nome da Mayara** no Registro.br, DNS na Cloudflare
 
 ## Verificações que valem repetir a cada mudança grande

@@ -41,7 +41,7 @@ export default async function CategoriaPage({ params }: Props) {
       <h1 className="mb-8 font-serif text-3xl">{categoria.nome}</h1>
 
       {produtos.length === 0 ? (
-        <p className="py-16 text-center text-sm text-carvao/60">
+        <p className="py-16 text-center text-sm text-grafite/60">
           Ainda não temos peças nessa categoria. Volte em breve.
         </p>
       ) : (

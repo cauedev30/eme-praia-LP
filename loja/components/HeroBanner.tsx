@@ -46,7 +46,7 @@ export default function HeroBanner() {
         </p>
         <Link
           href="/#promocao"
-          className="mt-4 inline-block bg-laranja px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-grafite transition-colors hover:bg-white md:mt-7 md:px-8 md:py-3.5 md:text-xs"
+          className="mt-4 inline-block bg-laranja px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-grafite transition-colors hover:bg-grafite hover:text-laranja md:mt-7 md:px-8 md:py-3.5 md:text-xs"
         >
           Confira Coleção
         </Link>

@@ -13,10 +13,10 @@ export default function CartBar() {
       {/* espaco no fim da pagina pra barra nao cobrir o rodape */}
       <div className="h-[76px]" aria-hidden="true" />
       {!aberta && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-carvao/10 bg-creme">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-grafite/10 bg-gelo">
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3">
             <div className="flex-1">
-              <p className="text-xs uppercase tracking-wide text-carvao/60">
+              <p className="text-xs uppercase tracking-wide text-grafite/60">
                 {quantidadeTotal} {quantidadeTotal === 1 ? 'item' : 'itens'} na sacola
               </p>
               <p className="text-lg leading-tight">{formatarCentavos(valorTotal)}</p>
@@ -24,7 +24,7 @@ export default function CartBar() {
             <button
               type="button"
               onClick={abrir}
-              className="bg-bronze px-6 py-3 text-sm uppercase tracking-widest text-creme transition hover:bg-carvao"
+              className="bg-laranja px-6 py-3 text-sm uppercase tracking-widest text-grafite transition hover:bg-grafite hover:text-laranja"
             >
               Finalizar pedido
             </button>

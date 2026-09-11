@@ -11,7 +11,7 @@ export default function ImagemSlot({
   const cores =
     tom === 'escuro'
       ? 'border-white/25 bg-white/[0.03] text-white/50'
-      : 'border-carvao/20 bg-areia text-carvao/40'
+      : 'border-grafite/20 bg-concha text-grafite/40'
 
   return (
     <div

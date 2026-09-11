@@ -33,7 +33,7 @@ export default async function CategoryGrid() {
             >
               <span
                 className={`text-sm uppercase tracking-widest ${
-                  categoria.imagem ? 'text-white' : 'text-carvao'
+                  categoria.imagem ? 'text-white' : 'text-grafite'
                 }`}
               >
                 {categoria.nome}
@@ -46,7 +46,7 @@ export default async function CategoryGrid() {
         <div className="mt-6 text-center">
           <Link
             href={`/${primeira.slug}`}
-            className="inline-block border border-carvao px-8 py-2 text-xs uppercase tracking-widest text-carvao hover:bg-carvao hover:text-creme"
+            className="inline-block border border-grafite px-8 py-2 text-xs uppercase tracking-widest text-grafite hover:bg-grafite hover:text-gelo"
           >
             Ver tudo
           </Link>

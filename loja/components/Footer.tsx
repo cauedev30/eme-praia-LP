@@ -24,7 +24,7 @@ function IconWhatsApp() {
 
 export default function Footer() {
   return (
-    <footer className="border-t border-carvao/10 bg-areia">
+    <footer className="border-t border-grafite/10 bg-concha">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-14">
         <Link href="/" aria-label={`${loja.nome} — página inicial`}>
           <img src="/logo/eme-lettering.webp" alt={loja.nome} width={686} height={86} className="h-auto w-64 md:w-96" />
@@ -35,7 +35,7 @@ export default function Footer() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Instagram da ${loja.nome}`}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-carvao/15 text-carvao/70 transition-colors hover:border-bronze hover:text-bronze"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-grafite/15 text-grafite/70 transition-colors hover:border-terra hover:text-terra"
           >
             <IconInstagram />
           </a>
@@ -44,7 +44,7 @@ export default function Footer() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`WhatsApp da ${loja.nome}`}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-carvao/15 text-carvao/70 transition-colors hover:border-bronze hover:text-bronze"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-grafite/15 text-grafite/70 transition-colors hover:border-terra hover:text-terra"
           >
             <IconWhatsApp />
           </a>

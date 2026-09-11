@@ -21,7 +21,7 @@ export default function BackButton({
     <button
       type="button"
       onClick={voltar}
-      className="mb-6 flex items-center gap-2 text-sm text-carvao/60 transition-colors hover:text-carvao"
+      className="mb-6 flex items-center gap-2 text-sm text-grafite/60 transition-colors hover:text-grafite"
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5" aria-hidden="true">
         <line x1="20" y1="12" x2="5" y2="12" />

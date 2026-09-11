@@ -41,7 +41,7 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
             </div>
           ) : (
             produto.imagens.map((imagem, i) => (
-              <div key={imagem} className="aspect-[4/5] overflow-hidden bg-carvao/5">
+              <div key={imagem} className="aspect-[4/5] overflow-hidden bg-grafite/5">
                 <img
                   src={imagem}
                   alt={`${produto.nome}${i > 0 ? ` — foto ${i + 1}` : ''}`}
@@ -57,24 +57,24 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
         </div>
 
         <div className="space-y-6">
-          <h1 className="font-serif text-2xl text-carvao">{produto.nome}</h1>
+          <h1 className="font-serif text-2xl text-grafite">{produto.nome}</h1>
 
           <div>
-            <p className="text-2xl text-carvao">{formatarCentavos(produto.precoPixCentavos)}</p>
-            <p className="mt-1 text-sm text-carvao/60">no Pix</p>
-            <p className="mt-2 text-sm text-carvao/60">
+            <p className="text-2xl text-grafite">{formatarCentavos(produto.precoPixCentavos)}</p>
+            <p className="mt-1 text-sm text-grafite/60">no Pix</p>
+            <p className="mt-2 text-sm text-grafite/60">
               ou {formatarCentavos(produto.precoCentavos)} em{' '}
               {parcelamento(produto.precoCentavos)} no cartão
             </p>
           </div>
 
           {produto.descricao && (
-            <p className="text-sm leading-relaxed text-carvao/80">{produto.descricao}</p>
+            <p className="text-sm leading-relaxed text-grafite/80">{produto.descricao}</p>
           )}
 
           {temGrade && (
             <div>
-              <p className="mb-2 text-xs uppercase tracking-wide text-carvao/60">Tamanho</p>
+              <p className="mb-2 text-xs uppercase tracking-wide text-grafite/60">Tamanho</p>
               <div className="flex gap-2">
                 {produto.tamanhos.map(({ tamanho, disponivel }) => (
                   <button
@@ -85,10 +85,10 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
                     aria-label={disponivel ? `Tamanho ${tamanho}` : `Tamanho ${tamanho} esgotado`}
                     className={
                       !disponivel
-                        ? 'h-9 min-w-9 cursor-not-allowed border border-carvao/15 px-2 text-sm text-carvao/30 line-through'
+                        ? 'h-9 min-w-9 cursor-not-allowed border border-grafite/15 px-2 text-sm text-grafite/30 line-through'
                         : tamanhoSelecionado === tamanho
-                          ? 'h-9 min-w-9 border border-carvao bg-carvao px-2 text-sm text-creme'
-                          : 'h-9 min-w-9 border border-carvao/30 px-2 text-sm text-carvao'
+                          ? 'h-9 min-w-9 border border-grafite bg-grafite px-2 text-sm text-gelo'
+                          : 'h-9 min-w-9 border border-grafite/30 px-2 text-sm text-grafite'
                     }
                   >
                     {tamanho}
@@ -99,13 +99,13 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
           )}
 
           <div>
-            <p className="mb-2 text-xs uppercase tracking-wide text-carvao/60">Quantidade</p>
+            <p className="mb-2 text-xs uppercase tracking-wide text-grafite/60">Quantidade</p>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 aria-label="Diminuir quantidade"
                 onClick={() => setQuantidade((q) => Math.max(1, q - 1))}
-                className="h-9 w-9 border border-carvao/30 text-carvao"
+                className="h-9 w-9 border border-grafite/30 text-grafite"
               >
                 &minus;
               </button>
@@ -114,7 +114,7 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
                 type="button"
                 aria-label="Aumentar quantidade"
                 onClick={() => setQuantidade((q) => q + 1)}
-                className="h-9 w-9 border border-carvao/30 text-carvao"
+                className="h-9 w-9 border border-grafite/30 text-grafite"
               >
                 +
               </button>
@@ -127,8 +127,8 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
             disabled={!podeAdicionar}
             className={
               podeAdicionar
-                ? 'w-full bg-bronze py-3 text-sm uppercase tracking-widest text-creme transition hover:bg-carvao'
-                : 'w-full cursor-not-allowed bg-carvao/15 py-3 text-sm uppercase tracking-widest text-carvao/40'
+                ? 'w-full bg-laranja py-3 text-sm uppercase tracking-widest text-grafite transition hover:bg-grafite hover:text-laranja'
+                : 'w-full cursor-not-allowed bg-grafite/15 py-3 text-sm uppercase tracking-widest text-grafite/40'
             }
           >
             {esgotado ? 'Esgotado' : 'Adicionar à sacola'}

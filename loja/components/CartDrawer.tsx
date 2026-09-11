@@ -34,34 +34,34 @@ export default function CartDrawer() {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-carvao/40" onClick={fechar} aria-hidden="true" />
+      <div className="absolute inset-0 bg-grafite/40" onClick={fechar} aria-hidden="true" />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Sacola"
-        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-creme shadow-xl"
+        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-gelo shadow-xl"
       >
-        <header className="flex items-center justify-between border-b border-carvao/10 px-6 py-4">
+        <header className="flex items-center justify-between border-b border-grafite/10 px-6 py-4">
           <button
             type="button"
             onClick={fechar}
             aria-label="Fechar sacola"
-            className="-ml-1 flex h-8 w-8 items-center justify-center text-carvao/70 transition-colors hover:text-carvao"
+            className="-ml-1 flex h-8 w-8 items-center justify-center text-grafite/70 transition-colors hover:text-grafite"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5" aria-hidden="true">
               <line x1="20" y1="12" x2="5" y2="12" />
               <polyline points="11 6 5 12 11 18" />
             </svg>
           </button>
-          <h2 className="font-serif text-lg text-carvao">Sacola</h2>
+          <h2 className="font-serif text-lg text-grafite">Sacola</h2>
         </header>
 
         {enviado ? (
           // O pedido NAO limpa a sacola sozinho: se o handoff pro WhatsApp
           // falhar, o carrinho da cliente teria sido destruido por nada.
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-            <p className="font-serif text-xl text-carvao">Pedido enviado no WhatsApp</p>
-            <p className="text-sm text-carvao/60">
+            <p className="font-serif text-xl text-grafite">Pedido enviado no WhatsApp</p>
+            <p className="text-sm text-grafite/60">
               Se a conversa não abriu, volte e toque de novo — sua sacola continua aqui.
             </p>
             <button
@@ -71,17 +71,17 @@ export default function CartDrawer() {
                 setEnviado(false)
                 fechar()
               }}
-              className="mt-2 border border-carvao px-6 py-2 text-xs uppercase tracking-widest text-carvao transition hover:bg-carvao hover:text-creme"
+              className="mt-2 border border-grafite px-6 py-2 text-xs uppercase tracking-widest text-grafite transition hover:bg-grafite hover:text-gelo"
             >
               Limpar sacola
             </button>
           </div>
         ) : vazia ? (
-          <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-carvao/60">
+          <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-grafite/60">
             Sua sacola está vazia.
           </div>
         ) : (
-          <ul className="flex-1 divide-y divide-carvao/10 overflow-y-auto px-6">
+          <ul className="flex-1 divide-y divide-grafite/10 overflow-y-auto px-6">
             {itens.map((item) => {
               const chave = chaveDoItem(item)
               return (
@@ -106,13 +106,13 @@ export default function CartDrawer() {
                         type="button"
                         onClick={() => remover(chave)}
                         aria-label={`Remover ${item.nome}`}
-                        className="text-xs text-carvao/50 underline hover:text-carvao"
+                        className="text-xs text-grafite/50 underline hover:text-grafite"
                       >
                         remover
                       </button>
                     </div>
                     {item.tamanho && (
-                      <p className="text-xs text-carvao/60">Tamanho {item.tamanho}</p>
+                      <p className="text-xs text-grafite/60">Tamanho {item.tamanho}</p>
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export default function CartDrawer() {
                           type="button"
                           onClick={() => alterarQuantidade(chave, -1)}
                           aria-label="Diminuir quantidade"
-                          className="h-7 w-7 border border-carvao/30 text-carvao"
+                          className="h-7 w-7 border border-grafite/30 text-grafite"
                         >
                           &minus;
                         </button>
@@ -129,7 +129,7 @@ export default function CartDrawer() {
                           type="button"
                           onClick={() => alterarQuantidade(chave, 1)}
                           aria-label="Aumentar quantidade"
-                          className="h-7 w-7 border border-carvao/30 text-carvao"
+                          className="h-7 w-7 border border-grafite/30 text-grafite"
                         >
                           +
                         </button>
@@ -146,9 +146,9 @@ export default function CartDrawer() {
         )}
 
         {!enviado && (
-          <footer className="border-t border-carvao/10 px-6 py-5">
+          <footer className="border-t border-grafite/10 px-6 py-5">
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm uppercase tracking-wide text-carvao/60">Total no pix</span>
+              <span className="text-sm uppercase tracking-wide text-grafite/60">Total no pix</span>
               <span className="text-lg">{formatarCentavos(valorTotal)}</span>
             </div>
             <a
@@ -159,13 +159,13 @@ export default function CartDrawer() {
               onClick={() => !vazia && setEnviado(true)}
               className={`block w-full py-3 text-center text-sm uppercase tracking-widest transition ${
                 vazia
-                  ? 'pointer-events-none bg-carvao/20 text-creme'
-                  : 'bg-bronze text-creme hover:bg-carvao'
+                  ? 'pointer-events-none bg-grafite/15 text-grafite/40'
+                  : 'bg-laranja text-grafite hover:bg-grafite hover:text-laranja'
               }`}
             >
               Fechar pedido no WhatsApp
             </a>
-            <p className="mt-3 text-center text-xs text-carvao/50">
+            <p className="mt-3 text-center text-xs text-grafite/50">
               O pedido abre no WhatsApp da loja já escrito. O pagamento é combinado por lá.
             </p>
           </footer>

@@ -9,17 +9,17 @@ export default async function Header() {
   const categorias = await getCategorias()
 
   return (
-    <header className="border-b border-carvao/10 bg-creme">
+    <header className="border-b border-grafite/10 bg-gelo">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 md:py-4">
         <Link href="/" className="flex items-center">
           <img src="/logo/eme-logo.webp" alt={loja.nome} width={1007} height={1007} className="h-20 w-auto md:h-28" />
         </Link>
-        <nav className="hidden gap-6 text-sm uppercase tracking-wide text-carvao md:flex">
-          <Link href="/#promocao" className="hover:text-bronze">
+        <nav className="hidden gap-6 text-sm uppercase tracking-wide text-grafite md:flex">
+          <Link href="/#promocao" className="hover:text-terra">
             Promoção
           </Link>
           {categorias.map((categoria) => (
-            <Link key={categoria.id} href={`/${categoria.slug}`} className="hover:text-bronze">
+            <Link key={categoria.id} href={`/${categoria.slug}`} className="hover:text-terra">
               {categoria.nome}
             </Link>
           ))}
