@@ -87,6 +87,7 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
                     disabled={!disponivel}
                     onClick={() => setTamanhoSelecionado(tamanho)}
                     aria-label={disponivel ? `Tamanho ${tamanho}` : `Tamanho ${tamanho} esgotado`}
+                    aria-pressed={tamanhoSelecionado === tamanho}
                     className={
                       !disponivel
                         ? 'h-9 min-w-9 cursor-not-allowed border border-grafite/15 px-2 text-sm text-grafite/30 line-through'
@@ -114,6 +115,7 @@ export default function ProductDetail({ produto }: { produto: Produto }) {
                       type="button"
                       onClick={() => setTamanhoSelecionado(valor)}
                       aria-label={`Tamanho kids ${tamanho}`}
+                      aria-pressed={tamanhoSelecionado === valor}
                       className={
                         tamanhoSelecionado === valor
                           ? 'h-9 min-w-9 border border-grafite bg-grafite px-2 text-sm text-gelo'
