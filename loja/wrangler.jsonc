@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "eme-praia",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  // O site estatico gerado pelo `next build`. Pedido que bate num arquivo e
+  // servido direto; o que nao bate (ex.: /api/*) cai no Worker.
+  "assets": {
+    "directory": "./out",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  // Mesmo banco do painel. Aqui so SELECT; migrations moram em painel/.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "eme-praia",
+      "database_id": "e4838cd1-3431-44c0-8c90-2db3cf531217"
+    }
+  ]
+}

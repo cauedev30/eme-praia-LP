@@ -2,19 +2,27 @@
   "name": "eme-praia-loja",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:worker": "vitest run --config vitest.worker.config.ts",
+    "worker:dev": "wrangler dev --persist-to ../.wrangler-state",
+    "worker:typecheck": "tsc -p worker",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
+    "hono": "^4.13.7",
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.1.9",
+    "@cloudflare/workers-types": "^5.20260914.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -23,6 +31,7 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.131.2"
   }
 }
