@@ -47,10 +47,15 @@ export type Categoria = {
  *  (GET /api/disponibilidade.json, decisao 3). Chave: slug do produto.
  *  So produtos ativos. Carrega temKids porque a chave da Mayara tambem
  *  precisa aparecer sem rebuild. */
+/** O valor e `| undefined` de proposito: a pagina do produto e estatica, do
+ *  build, e o mapa vem do banco agora. Produto arquivado depois do build
+ *  ainda tem pagina e nao esta mais no mapa — quem indexa aqui tem que
+ *  tratar a falta em vez de o TypeScript prometer que ela nao acontece. */
 export type MapaDisponibilidade = Record<
   string,
-  {
-    temKids: boolean
-    tamanhos: Record<string, boolean>
-  }
+  | {
+      temKids: boolean
+      tamanhos: Record<string, boolean>
+    }
+  | undefined
 >

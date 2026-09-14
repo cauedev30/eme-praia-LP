@@ -34,7 +34,7 @@ describe('GET /api/catalogo.json', () => {
     const resposta = await exports.default.fetch('https://eme-praia.test/api/catalogo.json')
 
     expect(resposta.status).toBe(500)
-    expect(await resposta.json()).toEqual({ erro: 'falha ao ler o catalogo' })
+    expect(await resposta.json()).toEqual({ erro: 'falha ao ler o banco' })
     expect(espiao).toHaveBeenCalled()
 
     espiao.mockRestore()
@@ -46,7 +46,25 @@ describe('GET /api/disponibilidade.json', () => {
     const r = await exports.default.fetch('https://eme-praia.test/api/disponibilidade.json')
     expect(r.status).toBe(200)
     expect(r.headers.get('cache-control')).toBe('public, max-age=30, s-maxage=30')
-    const mapa = (await r.json()) as Record<string, unknown>
+
+    const mapa = (await r.json()) as Record<string, { temKids: boolean; tamanhos: Record<string, boolean> }>
     expect(Object.keys(mapa)).toHaveLength(17)
+    // A forma importa: e o contrato que o DisponibilidadeProvider consome.
+    expect(mapa['top-tanga-sand']).toEqual({
+      temKids: true,
+      tamanhos: { P: true, M: true, G: true, GG: true },
+    })
+  })
+
+  // O teste acima nao prova o filtro de ativos: o seed nao tem produto
+  // arquivado, entao apagar o WHERE ainda daria 17. Este prova.
+  it('produto arquivado sai do mapa', async () => {
+    await env.DB.prepare(`UPDATE produtos SET ativo = 0 WHERE id = 'top-tanga-sand'`).run()
+
+    const r = await exports.default.fetch('https://eme-praia.test/api/disponibilidade.json')
+    const mapa = (await r.json()) as Record<string, unknown>
+
+    expect(mapa['top-tanga-sand']).toBeUndefined()
+    expect(Object.keys(mapa)).toHaveLength(16)
   })
 })

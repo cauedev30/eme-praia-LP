@@ -20,16 +20,35 @@ app.get('/api/catalogo.json', async (c) => {
 })
 
 // Consumida pelo navegador em toda carga de pagina (DisponibilidadeProvider).
-// 30 s de cache na borda e no navegador: e o "reflete em ate 30 s" da
-// decisao 3, e o que impede um dia de praia de virar milhares de SELECTs.
+// E o "reflete em ate 30 s" da decisao 3.
+//
+// O max-age segura o navegador de quem ja carregou. Pra segurar visitante
+// novo e preciso guardar na borda A MAO, com a Cache API: resposta que o
+// Worker MONTA nao entra no cache da Cloudflare sozinha (so entra o que ele
+// busca de uma origem), entao o s-maxage sozinho nao faria nada. Sem isso,
+// um dia de praia vira um SELECT por visitante.
 app.get('/api/disponibilidade.json', async (c) => {
+  const cache = caches.default
+  const chave = new Request(c.req.url)
+
+  const guardada = await cache.match(chave)
+  if (guardada) return guardada
+
   const mapa = await lerDisponibilidade(c.env.DB)
-  return c.json(mapa, 200, { 'Cache-Control': 'public, max-age=30, s-maxage=30' })
+  const resposta = c.json(mapa, 200, { 'Cache-Control': 'public, max-age=30, s-maxage=30' })
+
+  // clone() porque o corpo so pode ser lido uma vez, e waitUntil pra gravar
+  // depois de responder, sem segurar a visitante. Falha ao guardar nao pode
+  // virar erro: sem cache a resposta ja saiu certa.
+  c.executionCtx.waitUntil(cache.put(chave, resposta.clone()).catch(() => {}))
+  return resposta
 })
 
+// Mensagem neutra: as duas rotas caem aqui, e falar "catalogo" pra quem
+// pediu disponibilidade manda a pessoa procurar no lugar errado.
 app.onError((erro, c) => {
-  console.error('catalogo: erro no banco', erro)
-  return c.json({ erro: 'falha ao ler o catalogo' }, 500)
+  console.error('loja: erro no banco', erro)
+  return c.json({ erro: 'falha ao ler o banco' }, 500)
 })
 
 // Tudo que nao e API volta pros assets, que aplicam o not_found_handling

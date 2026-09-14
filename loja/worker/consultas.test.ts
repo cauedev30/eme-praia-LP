@@ -77,7 +77,7 @@ describe('lerDisponibilidade', () => {
     const mapa = await lerDisponibilidade(env.DB)
 
     expect(mapa['top-tanga-sand']).toEqual({ temKids: true, tamanhos: { P: true, M: false, G: true, GG: true } })
-    expect(mapa['top-triangulo-oceano'].temKids).toBe(false)
+    expect(mapa['top-triangulo-oceano']?.temKids).toBe(false)
     expect(mapa['top-cortininha-terracota']).toBeUndefined()
     expect(Object.keys(mapa)).toHaveLength(16)
   })
