@@ -3,6 +3,10 @@
   "name": "eme-praia-painel",
   "main": "src/index.tsx",
   "compatibility_date": "2026-09-01",
+  // So o painel.js. Assets sao servidos antes do Worker rodar, entao este
+  // arquivo fica fora do login. E por isso que ele nao tem segredo nenhum:
+  // so liga toque em fetch. Quem protege os dados e o middleware nas rotas.
+  "assets": { "directory": "./public" },
   // O painel e dono do schema: migrations e seed moram aqui. O Worker da
   // loja (loja/wrangler.jsonc) aponta pro MESMO database_id e so le.
   "d1_databases": [
