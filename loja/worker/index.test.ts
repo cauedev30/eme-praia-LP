@@ -1,5 +1,5 @@
-import { exports } from 'cloudflare:workers'
-import { describe, expect, it } from 'vitest'
+import { env, exports } from 'cloudflare:workers'
+import { describe, expect, it, vi } from 'vitest'
 
 describe('GET /api/catalogo.json', () => {
   it('devolve o catalogo sem cache', async () => {
@@ -16,5 +16,27 @@ describe('GET /api/catalogo.json', () => {
   it('caminho que nao e API nem asset devolve 404', async () => {
     const resposta = await exports.default.fetch('https://eme-praia.test/nao-existe')
     expect(resposta.status).toBe(404)
+    // Nao basta o status: o notFound padrao do Hono tambem devolve 404. O
+    // que prova o fallthrough pro ASSETS (com not_found_handling:
+    // "404-page") e o corpo vir da 404.html real, nao de um texto do Hono.
+    expect(resposta.headers.get('content-type')).toContain('text/html')
+    expect(await resposta.text()).toContain('</html>')
+  })
+
+  it('erro no banco devolve 500 com { erro }', async () => {
+    const espiao = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    // tamanhos tem FOREIGN KEY pra produtos (0001_catalogo.sql); com o
+    // constraint ligado (padrao do D1), dropar produtos sozinho falha antes
+    // do fetch. Dropa tamanhos primeiro pra so entao derrubar produtos.
+    await env.DB.prepare('DROP TABLE tamanhos').run()
+    await env.DB.prepare('DROP TABLE produtos').run()
+    const resposta = await exports.default.fetch('https://eme-praia.test/api/catalogo.json')
+
+    expect(resposta.status).toBe(500)
+    expect(await resposta.json()).toEqual({ erro: 'falha ao ler o catalogo' })
+    expect(espiao).toHaveBeenCalled()
+
+    espiao.mockRestore()
   })
 })

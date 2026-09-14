@@ -60,4 +60,10 @@ describe('lerCatalogo', () => {
     const { produtos } = await lerCatalogo(env.DB)
     expect(produtos[0].imagens).toEqual(['/produtos/a.webp', '/produtos/b.webp'])
   })
+
+  it('imagens que nao e lista vira lista vazia', async () => {
+    await env.DB.prepare(`UPDATE produtos SET imagens = '"x"' WHERE id = 'top-tanga-sand'`).run()
+    const { produtos } = await lerCatalogo(env.DB)
+    expect(produtos[0].imagens).toEqual([])
+  })
 })

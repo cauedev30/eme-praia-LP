@@ -56,6 +56,14 @@ const SQL_TAMANHOS = `
 
 const bool = (v: number) => v === 1
 
+// Guard contra imagens gravadas fora do formato esperado (lista de string):
+// se o JSON nao for array, cai pra lista vazia em vez de vazar o tipo errado
+// pra tipos.ts.
+function paraListaDeImagens(json: string): string[] {
+  const valor = JSON.parse(json) as unknown
+  return Array.isArray(valor) ? (valor as string[]) : []
+}
+
 export async function lerCatalogo(db: D1Database): Promise<{ categorias: Categoria[]; produtos: Produto[] }> {
   const [cats, prods, tams] = await db.batch([
     db.prepare(SQL_CATEGORIAS),
@@ -87,7 +95,7 @@ export async function lerCatalogo(db: D1Database): Promise<{ categorias: Categor
     categoria: p.categoria,
     precoCentavos: p.preco_centavos,
     precoPixCentavos: p.preco_pix_centavos,
-    imagens: JSON.parse(p.imagens) as string[],
+    imagens: paraListaDeImagens(p.imagens),
     tamanhos: tamanhosPorProduto.get(p.id) ?? [],
     temKids: bool(p.tem_kids),
     ordem: p.ordem,
