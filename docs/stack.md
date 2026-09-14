@@ -127,7 +127,7 @@ site, então não vão pro ar. Servem pra refazer a otimização se algo mudar.
 
 | Coisa | Por que ficou de fora |
 |---|---|
-| Banco de dados | Ainda não. Fase 1. Hoje o catálogo é `loja/data/*.ts`. |
+| ORM (Prisma, Drizzle) | O banco tem três tabelas e o Worker faz três `SELECT`. SQL escrito à mão em `loja/worker/consultas.ts` é menor que qualquer ORM. |
 | Gateway de pagamento | O checkout é conversa no WhatsApp. Não há pedido, nem cobrança, nem frete no sistema. |
 | Biblioteca de estado (Redux, Zustand) | A sacola cabe num Context do próprio React. |
 | Biblioteca de componentes (MUI, shadcn) | O visual é da marca da cliente, não de um kit. |

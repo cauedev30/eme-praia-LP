@@ -145,12 +145,12 @@ de fato se repetiu.
 
 ## 10. Fronteira única de dados: `lib/catalogo.ts`
 
-Nenhum componente lê `data/` direto. Todos passam por `lib/catalogo.ts`.
+Nenhum componente fala com a API direto. Todos passam por `lib/catalogo.ts`.
 
-**Por quê.** Na Fase 1 o catálogo sai do arquivo e vai pro banco. Com a
-fronteira, essa troca mexe em **um arquivo só**. Todas as funções já são
-`async` mesmo lendo de arquivo — justamente pra que a assinatura não mude
-quando virar `fetch`.
+**Por quê.** Na Fase 1 o catálogo saiu do arquivo e foi pro banco, e a
+troca mexeu em **um arquivo só**: as funções já eram `async` desde a Fase 0,
+justamente pra que a assinatura não mudasse quando virasse `fetch`. Hoje a
+fronteira também é onde o Zod valida e onde o build decide falhar.
 
 ---
 
