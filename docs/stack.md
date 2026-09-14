@@ -147,9 +147,10 @@ atualização e não vai cobrar mensalidade.
 |---|---|---|
 | **Cloudflare Workers** | — | Dois Workers, `eme-praia` e `eme-praia-painel`. O primeiro serve os arquivos estáticos (grátis, ilimitado) e a API de leitura. |
 | **Cloudflare D1** | — | Banco SQLite gerenciado, chamado `eme-praia`. Guarda catálogo e disponibilidade. Os dois Workers apontam pro mesmo `database_id`. |
-| **Hono** | 4.13.7 | As rotas HTTP dentro do Worker. Faz o papel do Express, mas feito pra borda, sem depender de Node. Tem JSX embutido, que o painel usa na Fase 2. |
+| **Hono** | 4.13.7 | As rotas HTTP dentro do Worker. Faz o papel do Express, mas feito pra borda, sem depender de Node. Tem JSX embutido, que o painel usa desde a Fase 2. |
 | **Zod** | 4.6.5 | Valida o que vem da API antes de virar página (`loja/lib/schema.ts`). Produto inválido é pulado com log; API fora derruba o build de propósito. |
-| **Cloudflare Access** | — | Fase 2. Login do painel por código no e-mail. |
+| **@hono/zod-validator** | 0.9.1 | Valida o corpo dos `PATCH` do painel com Zod antes da rota rodar. Corpo errado vira 400 sem tocar no banco. |
+| **Secrets do Worker** | — | `SENHA_PAINEL`, posta com `wrangler secret put`. Login do painel: senha conferida no servidor e cookie assinado por HMAC com a própria senha (`crypto.subtle`, sem dependência). Nenhuma tabela de sessão. |
 | **Cloudflare R2** | — | Fase 3. Precisa ser habilitado no dashboard (pede cartão) antes. |
 
 O raciocínio por trás de cada uma dessas escolhas está em

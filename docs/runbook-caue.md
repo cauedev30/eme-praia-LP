@@ -13,18 +13,34 @@ Escrito pro Cauê de daqui a oito meses, que não vai lembrar de nada.
 
 ## Estado atual
 
-**Fase 1 concluída.** O catálogo mora no D1 `eme-praia`. O site continua
-estático: `next build` busca `GET /api/catalogo.json` no Worker `eme-praia`
-e assa o HTML. Os dois estão em `https://eme-praia.pedidos-jp.workers.dev`.
+**Fase 2 concluída.** A Mayara marca tamanho esgotado e liga/desliga kids em
+`https://eme-praia-painel.pedidos-jp.workers.dev`, entrando com a senha do
+painel. A loja reflete em até 30 s via `/api/disponibilidade.json`.
 
-Próximo: Fase 2 (teste do Access num Worker descartável, depois o painel).
+Verificado em produção: sem cookie, `/` redireciona pra `/entrar`; a senha
+certa abre a tela (17 produtos, 17 chaves kids, 68 botões de tamanho); `PATCH`
+sem cookie responde 401 e não escreve; um toque num tamanho e no botão kids
+apareceu no `/api/disponibilidade.json` da loja. Tudo revertido depois do
+teste.
+
+**Não verificado ainda:** ninguém abriu o overlay da loja num navegador de
+celular de verdade, nem mediu se os alvos de toque ficaram em 44 px. Fazer
+isso antes de contar pra Mayara que o toque é confiável no celular dela.
+
+**Limite que fica, e é de propósito:** o botão do tamanho esgotado continua
+clicável por uns bons cem milissegundos, até o fetch de disponibilidade
+responder — e o checkout é mensagem de WhatsApp, sem checagem nenhuma no
+servidor. O overlay reduz pedido de tamanho errado, não elimina.
+
+Próximo: Fase 3 (cadastro de produto, foto). Antes dela: habilitar R2 no
+dashboard (pede cartão) e decidir Workers Builds + deploy hook.
 
 ## Os dois Workers e o banco
 
 | | Pasta | Nome na Cloudflare | Faz |
 |---|---|---|---|
-| Site + API de leitura | `loja/` | `eme-praia` | serve `out/`, `GET /api/catalogo.json` |
-| Painel | `painel/` | `eme-praia-painel` | dono das migrations; rotas na Fase 2 |
+| Site + API de leitura | `loja/` | `eme-praia` | serve `out/`, `GET /api/catalogo.json`, `GET /api/disponibilidade.json` |
+| Painel | `painel/` | `eme-praia-painel` | tela de estoque, `PATCH /api/...`, dono das migrations. **Inteiro atrás de senha** |
 
 Os dois apontam pro mesmo `database_id` no `wrangler.jsonc`. Se um dia
 divergirem, o site lê um banco e o painel escreve em outro — conferir os dois
@@ -49,6 +65,42 @@ o build busca o catálogo no Worker que ele mesmo vai substituir. Então, na
 primeira vez, o Worker precisa existir antes do primeiro build (ver o
 histórico da Task 3 do plano da Fase 1: o primeiro deploy foi feito com o
 build ainda lendo de arquivo).
+
+## A senha do painel
+
+Ela vive em dois lugares e em nenhum arquivo do repo:
+
+- **Produção:** secret do Worker. Pra trocar, `cd painel && npx wrangler secret put SENHA_PAINEL` e digitar a nova. Vale na hora, sem deploy.
+- **Dev local:** `painel/.dev.vars` (ignorado pelo git). O `.dev.vars.example` diz o formato.
+
+**Trocar a senha desloga todo mundo.** O cookie de sessão é assinado com a
+própria senha, então trocar invalida os cookies já emitidos. É assim que se
+tira o acesso de alguém: troca e reenvia só pra quem deve ter.
+
+**Se o painel responder "Painel indisponivel." com 503**, o secret sumiu do
+Worker (deploy de outra conta, secret apagado no dashboard). Repor com o
+comando acima. O painel fechar sozinho nesse caso é de propósito.
+
+**Se o painel abrir sem pedir senha**, algo muito errado: conferir em
+Workers & Pages → `eme-praia-painel` → Settings → Variables que `SENHA_PAINEL`
+está como **Secret**, não como texto, e que ninguém subiu um `.dev.vars` junto
+no deploy.
+
+**Se o painel responder erro 1102 (ou qualquer 5xx) logo no primeiro acesso**,
+é o limite de CPU do plano gratuito do Workers — 10 ms por invocação — e o
+PBKDF2 do login estourou. Baixar `ITERACOES` em `painel/src/sessao.ts` (hoje
+5 000) resolve na hora. Assinar um plano pago da Cloudflare permite voltar a
+subir esse número depois. Contexto completo na decisão 11.
+
+**Mandar a senha pra Mayara** por mensagem direta, nunca em grupo. Se cair em
+grupo ou print, trocar na hora — é um comando.
+
+**Contra chute em massa não existe defesa no código.** A espera de meio
+segundo na senha errada atrapalha quem tenta na mão e mais nada: conexões em
+paralelo passam por ela. Quem limita de verdade é regra de rate limiting do
+WAF em `POST /entrar` (dashboard → o domínio → Security → WAF → Rate limiting
+rules, algo como 10 tentativas por minuto por IP). Não está ligada. Enquanto
+não estiver, o que segura é o tamanho da senha.
 
 ## Pendências antes do lançamento
 
@@ -92,6 +144,7 @@ build ainda lendo de arquivo).
 ```bash
 cd loja && npm test && npm run test:worker && npm run worker:typecheck && npm run build
 cd ../painel && npm run typecheck
+cd painel && npm test
 ```
 
 Depois, sobre `loja/out/`:
@@ -102,6 +155,9 @@ Depois, sobre `loja/out/`:
 - `sitemap.xml` e `robots.txt` existem e apontam pro domínio certo
 - Produto com adulto todo esgotado e `temKids: true` **não** aparece como
   esgotado; a fileira "Linha kids" continua clicável
+- Toque no painel aparece no site em até 30 s sem rebuild (o HTML do build
+  pode dizer "disponível"; o navegador corrige)
+- `PATCH` na API do painel sem estar logado responde 401 e não muda o banco
 
 ## Quando algo quebrar
 
@@ -125,3 +181,6 @@ Depois, sobre `loja/out/`:
 - **`next dev` mostra catálogo velho ou erro depois de uma queda da API** —
   `lib/catalogo.ts` lê a API uma vez por processo e guarda em memória,
   inclusive a falha. Reiniciar o `npm run dev`.
+- **Painel com erro 1102 ou 5xx no primeiro acesso** — estourou o limite de
+  CPU do plano gratuito do Workers. Ver "A senha do painel" acima: baixar
+  `ITERACOES` em `painel/src/sessao.ts`.

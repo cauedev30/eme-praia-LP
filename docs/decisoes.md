@@ -63,6 +63,13 @@ uma chamada em tempo real. Todo o resto pode ser arquivo.
 **O custo.** O "esgotado" aparece uns 100 ms depois da página. No pior caso a
 cliente pede um M que acabou — o que já acontece hoje, e a conversa resolve.
 
+**Implementado na Fase 2.** `GET /api/disponibilidade.json` (30 s de cache)
+carrega `disponivel` por tamanho **e** `temKids`, porque a chave kids da
+Mayara também precisa aparecer sem rebuild. No site,
+`components/DisponibilidadeProvider.tsx` busca isso a cada troca de página e
+`useProdutoAoVivo` corrige o produto do build. O JSON-LD continua sendo o
+estado do build (`lib/jsonld.tsx`).
+
 ---
 
 ## 4. Preço é número inteiro, em centavos.

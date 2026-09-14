@@ -29,6 +29,9 @@ cd ../painel
 npm install
 npm run db:migrate:local     # D1 local em ../.wrangler-state (compartilhado com a loja)
 npm run db:migrate:remote    # aplica migrations pendentes no D1 de producao
+cp .dev.vars.example .dev.vars   # e colocar a senha do painel
+npm run dev                      # localhost:8787, cai na tela de senha
+npm run deploy
 ```
 
 Não rode `npm run build` com o `npm run dev` aberto: os dois escrevem em
@@ -41,7 +44,7 @@ de novo.
 | Pasta | O que é |
 |---|---|
 | `loja/` | O site público. Next.js 14 com `output: 'export'` — gera HTML estático |
-| `painel/` | Dono do schema do banco (`migrations/`) e, a partir da Fase 2, o painel de gestão. Cloudflare Worker + D1 |
+| `painel/` | O painel de gestão e a API de escrita. Cloudflare Worker + D1, inteiro atrás de senha. Dono das migrations |
 | `imagens/` | Arquivos originais da marca, sem compressão. Não vão pro ar |
 | `docs/` | Documentação |
 
@@ -106,6 +109,6 @@ disponível/esgotado — um toque pra alternar.
 |---|---|---|
 | **0** | Modelo correto, rotas dinâmicas, SEO, identidade da marca — ainda em arquivo | ✅ concluída |
 | **1** | Banco D1 + `/api/catalogo.json`. O site passa a buildar do banco | ✅ concluída |
-| **2** | Cloudflare Access + tela de estoque. **É a entrega que justifica o projeto** | a fazer |
+| **2** | Login por senha + tela de estoque. **É a entrega que justifica o projeto** | ✅ concluída |
 | **3** | Cadastro de produto + upload de foto com redimensionamento no navegador | a fazer |
 | **4** | Documentação da cliente, vídeo, treinamento | a fazer |
