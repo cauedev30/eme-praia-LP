@@ -5,6 +5,7 @@ import type { Produto } from '@/lib/tipos'
 import { formatarCentavos, parcelamento } from '@/lib/preco'
 import { temEstoque } from '@/lib/estoque'
 import { rotuloKids, selecaoInicial, tamanhosKids, temVariante } from '@/lib/variantes'
+import { selecaoCorrigida } from '@/lib/aoVivo'
 import { useSacola } from '@/components/CartProvider'
 import { useProdutoAoVivo } from '@/components/DisponibilidadeProvider'
 import BackButton from '@/components/BackButton'
@@ -18,14 +19,12 @@ export default function ProductDetail({ produto: doBuild }: { produto: Produto }
   const { adicionar } = useSacola()
 
   // O mapa chega depois do primeiro render. Se o tamanho ja selecionado
-  // ficou esgotado, ou o kids selecionado deixou de existir, refaz a
-  // selecao inicial em vez de deixar a cliente com um botao morto marcado.
+  // ficou esgotado, ou o kids selecionado deixou de existir, a selecao e
+  // limpa (nunca trocada por outra: ver selecaoCorrigida). Atualizacao por
+  // funcao pra nao depender do valor atual e nao re-rodar a cada clique.
   useEffect(() => {
-    if (!tamanhoSelecionado) return
-    const adulto = produto.tamanhos.find((t) => t.tamanho === tamanhoSelecionado)
-    const kidsSumiu = tamanhoSelecionado.startsWith('Kids ') && !produto.temKids
-    if ((adulto && !adulto.disponivel) || kidsSumiu) setTamanhoSelecionado(selecaoInicial(produto))
-  }, [produto, tamanhoSelecionado])
+    setTamanhoSelecionado((atual) => selecaoCorrigida(produto, atual))
+  }, [produto])
 
   const temGrade = produto.tamanhos.length > 0
   const kids = tamanhosKids(produto)

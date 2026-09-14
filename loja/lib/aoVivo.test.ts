@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { aoVivo } from '@/lib/aoVivo'
-import type { Produto } from '@/lib/tipos'
+import { aoVivo, selecaoCorrigida } from '@/lib/aoVivo'
+import type { MapaDisponibilidade, Produto } from '@/lib/tipos'
 
 const produto: Produto = {
   id: 'x',
@@ -51,5 +51,48 @@ describe('aoVivo', () => {
     aoVivo(produto, { x: { temKids: false, tamanhos: { P: false } } })
     expect(produto.temKids).toBe(true)
     expect(produto.tamanhos[0].disponivel).toBe(true)
+  })
+
+  it('entrada torta no mapa nao derruba a pagina: vale o build', () => {
+    const tortos = [null, undefined, {}, { temKids: true }, { temKids: true, tamanhos: null }]
+    for (const torto of tortos) {
+      const vivo = aoVivo(produto, { x: torto } as unknown as MapaDisponibilidade)
+      expect(vivo).toBe(produto)
+    }
+  })
+})
+
+describe('selecaoCorrigida', () => {
+  it('sem selecao continua sem selecao', () => {
+    expect(selecaoCorrigida(produto, undefined)).toBeUndefined()
+  })
+
+  it('tamanho que continua disponivel fica', () => {
+    expect(selecaoCorrigida(produto, 'M')).toBe('M')
+  })
+
+  it('tamanho que esgotou e LIMPO, nunca trocado por outro', () => {
+    const esgotouM = {
+      ...produto,
+      tamanhos: [
+        { tamanho: 'P', disponivel: true },
+        { tamanho: 'M', disponivel: false },
+      ],
+    }
+    // P segue disponivel: se trocasse em vez de limpar, isso viria 'P' e a
+    // cliente mandaria no WhatsApp um tamanho que nao escolheu.
+    expect(selecaoCorrigida(esgotouM, 'M')).toBeUndefined()
+  })
+
+  it('kids selecionado some quando o produto perde a linha kids', () => {
+    expect(selecaoCorrigida({ ...produto, temKids: false }, 'Kids 6')).toBeUndefined()
+  })
+
+  it('kids selecionado fica enquanto o produto tem a linha kids', () => {
+    expect(selecaoCorrigida(produto, 'Kids 6')).toBe('Kids 6')
+  })
+
+  it('tamanho fora da grade fica como esta: nao e papel dela limpar', () => {
+    expect(selecaoCorrigida(produto, 'XG')).toBe('XG')
   })
 })
