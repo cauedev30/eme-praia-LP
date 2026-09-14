@@ -35,7 +35,8 @@ describe('ProdutoSchema', () => {
   })
 
   it('recusa campo faltando', () => {
-    const { temKids: _omitido, ...semKids } = produtoValido
+    const semKids: Record<string, unknown> = { ...produtoValido }
+    delete semKids.temKids
     expect(ProdutoSchema.safeParse(semKids).success).toBe(false)
   })
 })
