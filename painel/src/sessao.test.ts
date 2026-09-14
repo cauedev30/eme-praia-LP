@@ -83,5 +83,9 @@ describe('criarCookie / cookieVale', () => {
   it('sem senha, falha alto em vez de assinar com vazio', async () => {
     await expect(criarCookie('')).rejects.toThrow('senha ausente')
     await expect(senhaConfere('qualquer', '')).rejects.toThrow('senha ausente')
+    // Sem cookie e com cookie tem que falhar igual: o alarme nao pode
+    // depender de a visitante ter cookie ou nao.
+    await expect(cookieVale(undefined, '')).rejects.toThrow('senha ausente')
+    await expect(cookieVale('9999999999.seja-o-que-for', '')).rejects.toThrow('senha ausente')
   })
 })

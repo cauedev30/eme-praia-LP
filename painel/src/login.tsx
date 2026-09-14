@@ -17,8 +17,9 @@ export type Variaveis = { senha: string }
 
 // Espera antes de responder senha errada. Atrapalha chute manual e nada
 // mais: quem abrir varias conexoes em paralelo nao e afetado, porque nao
-// existe contador nem bloqueio. Limitar de verdade e regra de WAF em
-// POST /entrar (anotado no runbook). O que segura hoje e o tamanho da senha.
+// existe contador nem bloqueio aqui. Limitar de verdade e regra de rate
+// limiting do WAF em POST /entrar, que e camada de borda e nao de codigo.
+// O que segura hoje e o tamanho da senha.
 const ESPERA_ERRO_MS = 500
 
 const espera = (ms: number) => new Promise((pronto) => setTimeout(pronto, ms))

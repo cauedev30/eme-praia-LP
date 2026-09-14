@@ -25,14 +25,20 @@ function base64url(dados: ArrayBuffer): string {
   return btoa(binario).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
 }
 
+// Custo da derivacao. 100k iteracoes medem ~93 ms de CPU, o que passa do
+// limite de 10 ms por invocacao do plano gratuito do Workers (erro 1102) e
+// cabe folgado nos 30 s do plano pago. So a primeira requisicao de cada
+// isolate paga, mas e justamente ela que falharia. Conferir o plano da conta
+// antes do primeiro deploy do painel; se for gratuito, baixar pra 5_000
+// (~5 ms) e registrar a troca na decisao 11.
 const ITERACOES = 100_000
 const SAL = bytes('eme-praia-painel-v1')
 
-// Derivar custa 100k iteracoes de proposito: e o que transforma "quebrar a
-// senha a partir de um cookie roubado" de minutos em inviavel. Como a chave
-// depende so da senha, fica memorizada por isolate e so a primeira
-// requisicao paga. Trocar a senha troca a chave e mata os cookies antigos,
-// que e a propriedade da decisao 11.
+// Derivar custa caro de proposito: e o que transforma "quebrar a senha a
+// partir de um cookie roubado" de minutos em inviavel. Como a chave depende
+// so da senha, fica memorizada por isolate. Trocar a senha troca a chave e
+// mata os cookies antigos, que e a propriedade da decisao 11 — e o mapa nao
+// serve chave velha porque a propria senha e a chave do mapa.
 const chavesDerivadas = new Map<string, Promise<CryptoKey>>()
 
 function chaveDe(senha: string): Promise<CryptoKey> {
@@ -42,7 +48,11 @@ function chaveDe(senha: string): Promise<CryptoKey> {
 
   let chave = chavesDerivadas.get(senha)
   if (!chave) {
+    // Guardar a promessa antes de resolver faz requisicoes simultaneas no
+    // isolate frio compartilharem uma derivacao so. Se ela falhar, sai do
+    // mapa: senao o isolate inteiro ficaria preso na rejeicao memorizada.
     chave = derivar(senha)
+    chave.catch(() => chavesDerivadas.delete(senha))
     chavesDerivadas.set(senha, chave)
   }
   return chave
@@ -77,6 +87,9 @@ export async function cookieVale(
   senha: string,
   agora: number = Date.now(),
 ): Promise<boolean> {
+  // Antes do !valor de proposito: sem senha configurada, falha alto sempre,
+  // e nao so quando a visitante por acaso tem cookie.
+  if (!senha) throw new Error('sessao: senha ausente')
   if (!valor) return false
 
   const corte = valor.indexOf('.')

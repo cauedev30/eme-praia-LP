@@ -1502,7 +1502,23 @@ Expected: `Painel sem senha configurada...` e `503`. O painel está fechado porq
 Run: `curl -s https://eme-praia.pedidos-jp.workers.dev/api/disponibilidade.json | head -c 200`
 Expected: JSON começando em `{"top-tanga-sand":{"temKids":true,"tamanhos":{"P":true`.
 
-- [ ] **Step 2: A senha em produção (Cauê, no terminal dele)**
+- [ ] **Step 2: Conferir o limite de CPU do plano (bloqueante pro painel)**
+
+O login deriva a chave do cookie com PBKDF2, 100 mil iterações — medidas em **~93 ms de CPU**. O plano **gratuito** do Workers corta em 10 ms por invocação e devolve erro 1102; o **pago** dá 30 s. Só a primeira requisição de cada isolate paga (a chave fica memorizada), mas é justamente ela que falharia, e um painel de pouco movimento está frio quase sempre.
+
+Conferir em `dash.cloudflare.com` → Workers & Pages → Plans qual é o plano da conta.
+
+- **Pago:** nada a fazer, seguir.
+- **Gratuito:** baixar `ITERACOES` em `painel/src/sessao.ts` de `100_000` pra `5_000` (~5 ms), rodar `npm test` de novo, e acrescentar à decisão 11 um parágrafo dizendo que a derivação foi reduzida por causa do limite de CPU do plano grátis, que isso enfraquece a defesa contra quebra offline de um cookie roubado, e que subir de plano permite voltar pra 100 mil.
+
+Depois do deploy, confirmar na prática:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://eme-praia-painel.pedidos-jp.workers.dev/entrar
+```
+Expected: `200`. Se vier `500` ou a página de erro 1102 da Cloudflare, é o limite de CPU — baixar as iterações.
+
+- [ ] **Step 3: A senha em produção (Cauê, no terminal dele)**
 
 A senha **não** entra no repo nem passa pelo controller por arquivo. O Cauê roda e digita:
 
@@ -1520,7 +1536,7 @@ Expected: `1`.
 
 Conferir que a senha **não** vaza como variável de texto: Workers & Pages → `eme-praia-painel` → Settings → Variables. `SENHA_PAINEL` tem que aparecer como **Secret** (valor escondido), nunca como plain text.
 
-- [ ] **Step 3: A API não abre sem cookie**
+- [ ] **Step 4: A API não abre sem cookie**
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" -X PATCH \
@@ -1535,7 +1551,7 @@ curl -s https://eme-praia.pedidos-jp.workers.dev/api/disponibilidade.json | grep
 ```
 Expected: `"M":true` continua lá.
 
-- [ ] **Step 4: Ponta a ponta no celular**
+- [ ] **Step 5: Ponta a ponta no celular**
 
 1. Cauê, no celular: abrir o painel, digitar a senha. A tela lista os 17 produtos em duas categorias.
 2. Fechar o navegador e abrir de novo: **não pede senha** (o cookie durou).
@@ -1546,7 +1562,7 @@ Expected: `"M":true` continua lá.
 7. Digitar uma senha errada numa aba anônima: aparece "Senha errada." e não entra.
 8. Mayara, no celular dela: recebe a senha por um canal que não é grupo, entra, repete 3. Anotar o que ela estranhou.
 
-- [ ] **Step 5: README**
+- [ ] **Step 6: README**
 
 Na tabela **Fases**, marcar a Fase 2 como concluída. Na seção **Rodando**, adicionar no bloco de `painel/`:
 
@@ -1562,7 +1578,7 @@ No **Mapa das pastas**, a linha de `painel/` vira:
 | `painel/` | O painel de gestão e a API de escrita. Cloudflare Worker + D1, inteiro atrás de senha. Dono das migrations |
 ```
 
-- [ ] **Step 6: Runbook**
+- [ ] **Step 7: Runbook**
 
 Em `docs/runbook-caue.md`, substituir a seção **Estado atual** por:
 
@@ -1608,6 +1624,13 @@ no deploy.
 
 **Mandar a senha pra Mayara** por mensagem direta, nunca em grupo. Se cair em
 grupo ou print, trocar na hora — é um comando.
+
+**Contra chute em massa não existe defesa no código.** A espera de meio
+segundo na senha errada atrapalha quem tenta na mão e mais nada: conexões em
+paralelo passam por ela. Quem limita de verdade é regra de rate limiting do
+WAF em `POST /entrar` (dashboard → o domínio → Security → WAF → Rate limiting
+rules, algo como 10 tentativas por minuto por IP). Não está ligada. Enquanto
+não estiver, o que segura é o tamanho da senha.
 ```
 
 Na seção **Verificações que valem repetir**, adicionar depois do comando da loja:
@@ -1624,7 +1647,7 @@ e na lista, os itens:
 - `PATCH` na API do painel sem estar logado responde 401 e não muda o banco
 ```
 
-- [ ] **Step 7: Stack**
+- [ ] **Step 8: Stack**
 
 Em `docs/stack.md`, na tabela **Cloudflare**, **remover** a linha do Cloudflare Access (ele não é mais usado; a decisão 11 explica por quê) e adicionar:
 
@@ -1633,7 +1656,7 @@ Em `docs/stack.md`, na tabela **Cloudflare**, **remover** a linha do Cloudflare 
 | **Secrets do Worker** | — | `SENHA_PAINEL`, posta com `wrangler secret put`. Login do painel: senha conferida no servidor e cookie assinado por HMAC com a própria senha (`crypto.subtle`, sem dependência). Nenhuma tabela de sessão. |
 ```
 
-- [ ] **Step 8: Decisões**
+- [ ] **Step 9: Decisões**
 
 Em `docs/decisoes.md`, na decisão 3, adicionar depois da tabela:
 
@@ -1646,7 +1669,7 @@ Mayara também precisa aparecer sem rebuild. No site,
 estado do build (`lib/jsonld.tsx`).
 ```
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add README.md docs/
