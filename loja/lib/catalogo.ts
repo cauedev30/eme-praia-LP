@@ -45,9 +45,10 @@ export async function carregarCatalogo(
       'API_URL nao definida. Copie loja/.env.example pra loja/.env.local e aponte pro Worker eme-praia.',
     )
   }
-  const resposta = await fetchImpl(`${url.replace(/\/$/, '')}/api/catalogo.json`)
-  if (!resposta.ok) {
-    throw new Error(`catalogo: a API respondeu ${resposta.status} em ${url}. Build abortado.`)
+  const endereco = `${url.replace(/\/$/, '')}/api/catalogo.json`
+  const resposta = await fetchImpl(endereco)
+  if (resposta.status !== 200) {
+    throw new Error(`catalogo: a API respondeu ${resposta.status} em ${endereco}. Build abortado.`)
   }
   const bruto = CatalogoSchema.parse(await resposta.json())
 
@@ -96,15 +97,4 @@ export async function getProduto(slug: string): Promise<Produto | undefined> {
 
 export async function getProdutosPorCategoria(slug: string): Promise<Produto[]> {
   return (await getProdutos()).filter((p) => p.categoria === slug)
-}
-
-/** Um produto so esta a venda se tiver ao menos um tamanho disponivel.
- *  Produto sem grade (tamanhos vazio) esta sempre disponivel. Produto com
- *  kids tambem: kids e sob encomenda e nunca esgota. */
-export function temEstoque(produto: Produto) {
-  return (
-    produto.temKids ||
-    produto.tamanhos.length === 0 ||
-    produto.tamanhos.some((t) => t.disponivel)
-  )
 }

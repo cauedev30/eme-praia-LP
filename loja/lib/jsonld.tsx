@@ -1,5 +1,5 @@
 import { loja } from '@/loja.config'
-import { temEstoque } from '@/lib/catalogo'
+import { temEstoque } from '@/lib/estoque'
 import { urlAbsoluta } from '@/lib/loja'
 import type { Produto } from '@/lib/tipos'
 

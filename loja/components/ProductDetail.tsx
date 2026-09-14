@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { Produto } from '@/lib/tipos'
 import { formatarCentavos, parcelamento } from '@/lib/preco'
-import { temEstoque } from '@/lib/catalogo'
+import { temEstoque } from '@/lib/estoque'
 import { rotuloKids, selecaoInicial, tamanhosKids, temVariante } from '@/lib/variantes'
 import { useSacola } from '@/components/CartProvider'
 import BackButton from '@/components/BackButton'
