@@ -13,3 +13,6 @@ dist/
 .env*.local
 .dev.vars
 .wrangler/
+
+# estado local compartilhado entre loja/ e painel/ (wrangler --persist-to)
+.wrangler-state/
