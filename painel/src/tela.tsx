@@ -6,7 +6,7 @@ import type { Categoria, Produto } from '../../loja/lib/tipos'
 // So o que a Mayara precisa: tamanhos adulto (toque alterna) e a chave kids.
 
 const CSS = `
-  :root { --laranja: #FB7F20; --terra: #B35207; --grafite: #323233; --breu: #1F1F20; --gelo: #FAFAFA; --concha: #E7E6E2; }
+  :root { --laranja: #FB7F20; --terra: #B35207; --grafite: #323233; --breu: #1F1F20; --gelo: #FAFAFA; --concha: #E7E6E2; --apagado: #6B6B6C; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--gelo); color: var(--grafite); font: 16px/1.4 system-ui, sans-serif; }
   header { padding: 20px 16px 8px; }
@@ -19,7 +19,11 @@ const CSS = `
   .tamanhos { display: flex; flex-wrap: wrap; gap: 8px; }
   .tamanho { min-width: 52px; min-height: 44px; padding: 0 12px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer; border: 2px solid var(--grafite); }
   .tamanho[aria-pressed="true"] { background: var(--grafite); color: var(--gelo); }
-  .tamanho[aria-pressed="false"] { background: transparent; color: var(--grafite); opacity: .45; text-decoration: line-through; }
+  /* Cor apagada explicita em vez de opacity: .45, que dava 2,5:1 — o mesmo
+     contraste que a decisao 12 rejeita por sumir. E o opacity apagava junto
+     a borda, que precisa de 3:1 por ser limite de controle. Assim o esgotado
+     fica em 4,6:1 e continua marcado tambem pelo risco, nao so pela cor. */
+  .tamanho[aria-pressed="false"] { background: transparent; color: var(--apagado); border-color: var(--apagado); text-decoration: line-through; }
   .tamanho:disabled { cursor: wait; }
   .kids { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 8px; font-size: 15px; }
   .kids input { width: 24px; height: 24px; accent-color: var(--laranja); }
@@ -58,6 +62,7 @@ export const Tela: FC<Props> = ({ categorias, produtos }) => (
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="robots" content="noindex, nofollow" />
       <title>Eme Praia — estoque</title>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
     </head>
@@ -67,18 +72,23 @@ export const Tela: FC<Props> = ({ categorias, produtos }) => (
         <p>Eme Praia</p>
       </header>
       <main>
-        {categorias.map((cat) => (
-          <section>
-            <h2>{cat.nome}</h2>
-            {produtos
-              .filter((p) => p.categoria === cat.slug)
-              .map((p) => (
+        {categorias.map((cat) => {
+          const daCategoria = produtos.filter((p) => p.categoria === cat.slug)
+          // Categoria sem produto ativo nao vira titulo solto na tela.
+          if (daCategoria.length === 0) return null
+          return (
+            <section>
+              <h2>{cat.nome}</h2>
+              {daCategoria.map((p) => (
                 <Linha produto={p} />
               ))}
-          </section>
-        ))}
+            </section>
+          )
+        })}
       </main>
-      <div id="aviso" hidden>
+      {/* role=status faz o leitor de tela anunciar a falha: sem isso, quem
+          nao esta olhando o rodape nao fica sabendo que nao salvou. */}
+      <div id="aviso" role="status" aria-live="polite" hidden>
         Não salvou. Tenta de novo.
       </div>
       <script src="/painel.js" defer></script>

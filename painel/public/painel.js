@@ -20,10 +20,14 @@ async function patch(url, corpo) {
     body: JSON.stringify(corpo),
   })
   // Sessao vencida (ou senha trocada): manda logar de novo em vez de
-  // mostrar "nao salvou" pra sempre.
+  // mostrar "nao salvou" pra sempre. O erro marcado com .redirecionando faz
+  // o chamador desfazer a pintura sem piscar "Nao salvou" por cima de uma
+  // tela que ja esta indo pro login.
   if (r.status === 401) {
     location.href = '/entrar'
-    throw new Error('401')
+    const indoPraLogin = new Error('401')
+    indoPraLogin.redirecionando = true
+    throw indoPraLogin
   }
   if (!r.ok) throw new Error(String(r.status))
 }
@@ -45,9 +49,9 @@ document.addEventListener('click', async (ev) => {
       `/api/produtos/${encodeURIComponent(produto)}/tamanhos/${encodeURIComponent(tamanho)}`,
       { disponivel: !estava },
     )
-  } catch {
+  } catch (erro) {
     pintar(botao, estava)
-    avisar()
+    if (!erro?.redirecionando) avisar()
   } finally {
     botao.disabled = false
   }
@@ -61,9 +65,9 @@ document.addEventListener('change', async (ev) => {
   caixa.disabled = true
   try {
     await patch(`/api/produtos/${encodeURIComponent(caixa.dataset.kids)}`, { temKids: novo })
-  } catch {
+  } catch (erro) {
     caixa.checked = !novo
-    avisar()
+    if (!erro?.redirecionando) avisar()
   } finally {
     caixa.disabled = false
   }

@@ -18,7 +18,10 @@ describe('GET /', () => {
     expect(html).toContain('<h2>Maiô</h2>')
     expect(html).toContain('Top Meia Taça + Tanga Lateral Sand')
     expect(html).toContain('data-produto="top-tanga-sand" data-tamanho="M" aria-pressed="true"')
-    expect(html).toContain('data-kids="top-tanga-sand"')
+    // Com o checked de propria: o outro teste prova que ele some quando
+    // tem_kids = 0, mas sem este a chave podia nascer sempre desmarcada e
+    // os dois passariam.
+    expect(html).toMatch(/data-kids="top-tanga-sand"[^>]*checked/)
     expect(html).toContain('Tem versão kids')
     expect(html).toContain('Não salvou. Tenta de novo.')
     expect(html).toContain('<script src="/painel.js"')
@@ -36,6 +39,15 @@ describe('GET /', () => {
     await env.DB.prepare(`UPDATE produtos SET ativo = 0 WHERE id = 'top-tanga-sand'`).run()
     const html = await (await abrirPainel()).text()
     expect(html).not.toContain('Top Meia Taça + Tanga Lateral Sand')
+  })
+
+  it('categoria que ficou sem produto ativo nao vira titulo solto', async () => {
+    await env.DB.prepare(
+      `UPDATE produtos SET ativo = 0 WHERE categoria_id = (SELECT id FROM categorias WHERE slug = 'maio')`,
+    ).run()
+    const html = await (await abrirPainel()).text()
+    expect(html).not.toContain('<h2>Maiô</h2>')
+    expect(html).toContain('<h2>Biquínis</h2>')
   })
 
   it('escapa HTML no nome do produto', async () => {
