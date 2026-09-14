@@ -13,10 +13,38 @@ Escrito pro Cauê de daqui a oito meses, que não vai lembrar de nada.
 
 ## Estado atual
 
-**Fase 0 concluída.** O site é estático, o catálogo está correto no formato
-final, mas ainda mora em arquivo (`loja/data/`). Nada de banco ainda.
+**Fase 1 concluída.** O catálogo mora no D1 `eme-praia`. O site continua
+estático: `next build` busca `GET /api/catalogo.json` no Worker `eme-praia`
+e assa o HTML. Os dois estão em `https://eme-praia.pedidos-jp.workers.dev`.
 
-Próximo: Fase 1 (D1 + seed + `/api/catalogo.json`).
+Próximo: Fase 2 (teste do Access num Worker descartável, depois o painel).
+
+## Os dois Workers e o banco
+
+| | Pasta | Nome na Cloudflare | Faz |
+|---|---|---|---|
+| Site + API de leitura | `loja/` | `eme-praia` | serve `out/`, `GET /api/catalogo.json` |
+| Painel | `painel/` | `eme-praia-painel` | dono das migrations; rotas na Fase 2 |
+
+Os dois apontam pro mesmo `database_id` no `wrangler.jsonc`. Se um dia
+divergirem, o site lê um banco e o painel escreve em outro — conferir os dois
+arquivos antes de qualquer `wrangler d1 create`.
+
+**Dev local.** Cada pasta tem seu `.wrangler/`, então os dois Workers teriam
+dois bancos locais. Todos os scripts passam `--persist-to ../.wrangler-state`
+pra que o D1 local seja um só. Ordem: `painel: npm run db:migrate:local`,
+depois `loja: npm run worker:dev` (porta 8787), depois `loja: npm run dev` com
+`API_URL=http://localhost:8787` no `.env.local`.
+
+**Migration nova.** Arquivo `painel/migrations/000N_nome.sql`, aplicar local,
+rodar `npm run test:worker` na loja (os testes aplicam as migrations num D1
+em memória), depois `npm run db:migrate:remote`. Os testes do Worker não
+isolam o banco entre testes sozinhos: `loja/worker/apply-migrations.ts` faz
+`reset()` e reaplica as migrations num `beforeEach`. Copiar esse padrão no
+painel.
+
+**Deploy.** `loja: npm run deploy` (build + deploy). Enquanto não há Workers
+Builds, é sempre da máquina do Cauê.
 
 ## Pendências antes do lançamento
 
@@ -58,7 +86,7 @@ Próximo: Fase 1 (D1 + seed + `/api/catalogo.json`).
 ## Verificações que valem repetir a cada mudança grande
 
 ```bash
-cd loja && npm test && npm run build
+cd loja && npm test && npm run test:worker && npm run build
 ```
 
 Depois, sobre `loja/out/`:
@@ -76,3 +104,19 @@ Depois, sobre `loja/out/`:
   anterior continua no ar. Nunca fazer o build publicar catálogo vazio.
 - **Produto novo não apareceu** — provavelmente não passou na validação. Olhar o
   log do build; produto inválido é pulado de propósito, pra não derrubar a loja.
+- **`/api/catalogo.json` devolvendo 500** — o Worker logou `catalogo: erro no
+  banco`. Ver com `npx wrangler tail eme-praia`. Quase sempre é migration não
+  aplicada no remoto: `painel: npm run db:migrate:remote`.
+- **Build com "API_URL nao definida"** — falta o `loja/.env.local`. Copiar de
+  `.env.example`.
+- **Clone novo: `npm run test:worker`, `worker:dev` ou `deploy` falham com erro
+  estranho do workerd** — o npm deste projeto exige aprovar scripts de
+  pós-instalação. Rodar `npm approve-scripts --allow-scripts-pending` em
+  `loja/` e em `painel/`, depois `npm install` de novo.
+- **Depois de mexer no `loja/package.json`** — ele tem `"type": "module"` por
+  causa dos configs do Vitest 4. Qualquer `.js` novo na raiz de `loja/` vai
+  ser lido como ES module; se um arquivo de config quebrar com "require is
+  not defined", é isso.
+- **`next dev` mostra catálogo velho ou erro depois de uma queda da API** —
+  `lib/catalogo.ts` lê a API uma vez por processo e guarda em memória,
+  inclusive a falha. Reiniciar o `npm run dev`.

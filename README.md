@@ -20,8 +20,15 @@ Se você chegou agora, leia nessa ordem.
 ```bash
 cd loja
 npm install
-npm run dev      # localhost:3000
-npm run build    # gera os arquivos estáticos em loja/out/
+cp .env.example .env.local   # API_URL: de onde o build busca o catalogo
+npm run dev                  # localhost:3000 (le a API de producao)
+npm run build                # gera os arquivos estaticos em loja/out/
+npm run deploy               # build + wrangler deploy do Worker eme-praia
+
+cd ../painel
+npm install
+npm run db:migrate:local     # D1 local em ../.wrangler-state (compartilhado com a loja)
+npm run db:migrate:remote    # aplica migrations pendentes no D1 de producao
 ```
 
 Não rode `npm run build` com o `npm run dev` aberto: os dois escrevem em
@@ -34,7 +41,7 @@ de novo.
 | Pasta | O que é |
 |---|---|
 | `loja/` | O site público. Next.js 14 com `output: 'export'` — gera HTML estático |
-| `painel/` | Painel de gestão e API. Cloudflare Worker + D1 + R2 *(a partir da Fase 1)* |
+| `painel/` | Dono do schema do banco (`migrations/`) e, a partir da Fase 2, o painel de gestão. Cloudflare Worker + D1 |
 | `imagens/` | Arquivos originais da marca, sem compressão. Não vão pro ar |
 | `docs/` | Documentação |
 
@@ -49,7 +56,8 @@ Dentro de `loja/`:
 | `components/` | As peças da tela |
 | `lib/catalogo.ts` | **A fronteira dos dados.** Ver abaixo |
 | `lib/tipos.ts` | O formato do catálogo, espelhando o schema do banco |
-| `data/` | O catálogo em arquivo. **Some na Fase 1**, quando virar banco |
+| `worker/` | O Worker `eme-praia`: serve `out/` e `GET /api/catalogo.json` sobre o D1 |
+| `wrangler.jsonc` | Config do Worker: assets em `out/`, binding `DB` pro D1 `eme-praia` |
 | `public/` | O que é servido como arquivo: logos e a foto do hero |
 
 ## A decisão central da arquitetura
@@ -79,9 +87,8 @@ disponível/esgotado — um toque pra alternar.
 ## Fronteiras do código
 
 - `loja.config.ts` — o único arquivo que muda de cliente pra cliente
-- `lib/catalogo.ts` — a fronteira dos dados. Hoje lê de `data/`; na Fase 1 passa
-  a fazer `fetch` na API. As funções já são `async` pra que a troca não mexa em
-  mais nada.
+- `lib/catalogo.ts` — a fronteira dos dados. Faz `fetch` em `/api/catalogo.json`
+  no build, valida com `lib/schema.ts` e falha o build se a API cair.
 - `lib/tipos.ts` — o formato do catálogo, espelhando o schema do banco
 
 ## Convenções
@@ -98,7 +105,7 @@ disponível/esgotado — um toque pra alternar.
 | Fase | Entrega | Estado |
 |---|---|---|
 | **0** | Modelo correto, rotas dinâmicas, SEO, identidade da marca — ainda em arquivo | ✅ concluída |
-| **1** | Banco D1 + `/api/catalogo.json`. O site passa a buildar do banco | a fazer |
+| **1** | Banco D1 + `/api/catalogo.json`. O site passa a buildar do banco | ✅ concluída |
 | **2** | Cloudflare Access + tela de estoque. **É a entrega que justifica o projeto** | a fazer |
 | **3** | Cadastro de produto + upload de foto com redimensionamento no navegador | a fazer |
 | **4** | Documentação da cliente, vídeo, treinamento | a fazer |

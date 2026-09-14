@@ -168,6 +168,28 @@ descartável e fazer login num celular que não é o do Cauê. Se travar, o plan
 
 ---
 
+## 13. Dois Workers, um banco.
+
+`eme-praia` (em `loja/`) serve o site e a API de leitura. `eme-praia-painel`
+(em `painel/`) é o painel e a API de escrita, inteiro atrás do Cloudflare
+Access. Os dois têm binding pro mesmo D1.
+
+**Por quê.** O Access, hoje, protege um Worker inteiro pelo botão "Protect
+this Worker behind Access", e isso funciona no `workers.dev` sem domínio
+próprio. Proteger só um caminho (`/painel`) exigiria um domínio na zona, que
+não existe ainda. Com dois Workers a fronteira de segurança é o Worker
+inteiro: não há regra de caminho pra errar, e a loja não tem uma linha de
+escrita.
+
+**O custo.** Dois `wrangler.jsonc`, dois deploys, e o `database_id` repetido
+nos dois. Em dev, os scripts compartilham o estado local com
+`--persist-to ../.wrangler-state` pra não virar dois bancos.
+
+**O Cookeria não é referência de formato.** Ele roda `@opennextjs/cloudflare`
+(Next em runtime no Worker), exatamente o que a decisão 1 descarta aqui.
+
+---
+
 ## Decisões de imagem
 
 ### O hero é a foto da campanha, sem corte no desktop

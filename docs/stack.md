@@ -11,7 +11,7 @@ Versões conferidas em `loja/node_modules` — não são chute do `package.json`
 |---|---|---|
 | **TypeScript** | 5.9.3 | JavaScript com tipos. O tipo existe só enquanto você escreve; no navegador vira JavaScript normal. É a linguagem em que **todo** o código deste projeto está escrito. |
 | **CSS** | — | Escrito quase sempre via Tailwind, em classes no meio do HTML. O CSS solto vive só em `loja/app/globals.css`. |
-| **SQL** | — | Ainda não usado. Entra na Fase 1, no schema do banco. |
+| **SQL** | — | O schema do banco, em `painel/migrations/`. SQLite, o dialeto do D1. |
 
 `strict: true` está ligado no `tsconfig.json`. Isso significa que o TypeScript
 recusa código com tipo ambíguo — por exemplo, usar um valor que pode ser
@@ -79,7 +79,9 @@ em cima dela. Está no `package.json` porque o Tailwind exige.
 | **Node.js** | 24.18.0 | O programa que roda JavaScript fora do navegador. É o que executa `npm run dev` e `npm run build`. Não vai pro ar — é só a ferramenta de trabalho. |
 | **npm** | — | Instala as bibliotecas. `package-lock.json` grava a versão exata de cada uma; é ele que faz sua máquina e o servidor de build instalarem exatamente o mesmo código. |
 | **ESLint** 8.57.1 + `eslint-config-next` | | Aponta erro de código antes de rodar. |
-| **Vitest** 3 | | Roda os testes de `loja/lib/*.test.ts`. Só lógica pura: não há teste de componente nem de navegador. `npm test`. |
+| **Vitest** 4.1.11 | | Dois configs: `vitest.config.ts` roda `lib/*.test.ts` em Node; `vitest.worker.config.ts` roda `worker/*.test.ts` dentro do workerd, com um D1 em memória que recebe as migrations. O `vitest.config.ts` liga `oxc: { jsx: { runtime: 'automatic' } }` porque o `tsconfig.json` da loja usa `jsx: preserve` (quem transpila é o Next) e o oxc do Vitest 4 engasgaria num `.tsx` importado pelo teste sem isso. `npm test` e `npm run test:worker`. |
+| **wrangler** 4.131.2 | | A CLI da Cloudflare: `wrangler dev`, `wrangler deploy`, `wrangler d1 ...`. Uma cópia em `loja/`, outra em `painel/`. |
+| **@cloudflare/vitest-plugin** 1.1.9 | | O que faz o Vitest rodar dentro do workerd, com bindings de verdade. Exige Vitest 4.1. |
 
 ---
 
@@ -137,16 +139,16 @@ atualização e não vai cobrar mensalidade.
 
 ---
 
-## Para onde isso vai (Fase 1 em diante)
+## Cloudflare (a partir da Fase 1)
 
-| | Papel |
-|---|---|
-| **Cloudflare Workers** | Serve os arquivos estáticos e a API. Arquivo estático é grátis e ilimitado. |
-| **Cloudflare D1** | Banco SQLite gerenciado. Guarda catálogo e disponibilidade. |
-| **Cloudflare R2** | Guarda as fotos que a Mayara subir. |
-| **Cloudflare Access** | Login do painel por código no e-mail. Nenhuma linha de autenticação escrita à mão. |
-| **Hono** | Framework pequeno pra escrever as rotas da API dentro do Worker. |
-| **Zod** | Valida o que vem do banco antes de virar página. Produto inválido é pulado com log, em vez de derrubar o build. |
+| | Versão | Papel |
+|---|---|---|
+| **Cloudflare Workers** | — | Dois Workers, `eme-praia` e `eme-praia-painel`. O primeiro serve os arquivos estáticos (grátis, ilimitado) e a API de leitura. |
+| **Cloudflare D1** | — | Banco SQLite gerenciado, chamado `eme-praia`. Guarda catálogo e disponibilidade. Os dois Workers apontam pro mesmo `database_id`. |
+| **Hono** | 4.13.7 | As rotas HTTP dentro do Worker. Faz o papel do Express, mas feito pra borda, sem depender de Node. Tem JSX embutido, que o painel usa na Fase 2. |
+| **Zod** | 4.6.5 | Valida o que vem da API antes de virar página (`loja/lib/schema.ts`). Produto inválido é pulado com log; API fora derruba o build de propósito. |
+| **Cloudflare Access** | — | Fase 2. Login do painel por código no e-mail. |
+| **Cloudflare R2** | — | Fase 3. Precisa ser habilitado no dashboard (pede cartão) antes. |
 
 O raciocínio por trás de cada uma dessas escolhas está em
 [decisoes.md](decisoes.md).
