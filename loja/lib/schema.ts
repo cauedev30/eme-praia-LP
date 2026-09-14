@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { Categoria, Produto } from '@/lib/tipos'
+import type { Categoria, Produto, Tamanho } from '@/lib/tipos'
 
 // Validacao do que chega da API antes de virar pagina. Cada schema e
 // amarrado ao tipo de tipos.ts com `satisfies`: se o tipo mudar e o schema
@@ -16,7 +16,7 @@ const naoVazio = z.string().min(1)
 export const TamanhoSchema = z.object({
   tamanho: naoVazio,
   disponivel: z.boolean(),
-})
+}) satisfies z.ZodType<Tamanho>
 
 export const ProdutoSchema = z.object({
   id: naoVazio,
