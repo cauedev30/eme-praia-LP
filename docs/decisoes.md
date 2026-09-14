@@ -183,6 +183,28 @@ o cookie é assinado com a própria senha, trocar desloga todo mundo na hora.
 ficar aberta atrás de uma tela bonita. A senha nunca entra no repo: vive em
 `.dev.vars` (ignorado) no local e em secret na Cloudflare.
 
+**A chave do cookie é derivada, não é a senha crua.** Um cookie é um par
+(texto conhecido, assinatura válida): quem roubar um — celular emprestado,
+print, log de proxy — quebra a senha offline na velocidade da função. Com a
+senha como chave direta isso é bilhões de tentativas por segundo. Então a
+chave passa por PBKDF2, e como ela depende só da senha fica memorizada por
+isolate: a primeira requisição paga, as seguintes não. Trocar a senha continua
+matando todo cookie emitido, que é a propriedade acima.
+
+**O número de iterações é escolhido pelo plano da Cloudflare, não pela
+segurança.** A conta está no plano **gratuito** do Workers, que corta em 10 ms
+de CPU por invocação e devolve erro 1102 acima disso. 100 mil iterações medem
+~93 ms e não cabem; ficou em **5 mil**, ~5 ms. É 5 mil vezes mais caro que a
+chave crua, contra 100 mil no plano pago — menos defesa, e a diferença é
+consciente. Subir de plano permite voltar a 100 mil mudando uma constante em
+`painel/src/sessao.ts`.
+
+**Contra chute em massa não há defesa no código.** A espera de meio segundo na
+senha errada atrapalha quem tenta na mão e nada mais: conexões em paralelo
+passam por ela. Quem limitaria de verdade é regra de rate limiting do WAF em
+`POST /entrar`, que não está ligada. Enquanto não estiver, o que segura é o
+tamanho da senha — e a atual é fraca.
+
 **Pendência conhecida.** A primeira senha escolhida é palavra ligada ao negócio
 mais sequência de teclado — chutável por quem sabe o nome da loja. Foi escolha
 do Cauê, avisado. Trocar por quatro palavras soltas antes de entregar pra

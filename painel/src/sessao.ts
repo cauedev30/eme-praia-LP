@@ -25,13 +25,17 @@ function base64url(dados: ArrayBuffer): string {
   return btoa(binario).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
 }
 
-// Custo da derivacao. 100k iteracoes medem ~93 ms de CPU, o que passa do
-// limite de 10 ms por invocacao do plano gratuito do Workers (erro 1102) e
-// cabe folgado nos 30 s do plano pago. So a primeira requisicao de cada
-// isolate paga, mas e justamente ela que falharia. Conferir o plano da conta
-// antes do primeiro deploy do painel; se for gratuito, baixar pra 5_000
-// (~5 ms) e registrar a troca na decisao 11.
-const ITERACOES = 100_000
+// Custo da derivacao, limitado pelo plano. A conta esta no plano GRATUITO do
+// Workers, que corta em 10 ms de CPU por invocacao (erro 1102). 100k
+// iteracoes medem ~93 ms e nao cabem; 5k medem ~5 ms e deixam folga pro
+// resto da requisicao. So a primeira de cada isolate paga, mas e justamente
+// ela que estouraria.
+//
+// O que se perde: 5k torna a quebra offline de um cookie roubado 5 mil vezes
+// mais cara que a chave crua, contra 100 mil no plano pago. E menos, e esta
+// registrado na decisao 11. Subir de plano permite voltar pra 100_000 sem
+// mudar mais nada.
+const ITERACOES = 5_000
 const SAL = bytes('eme-praia-painel-v1')
 
 // Derivar custa caro de proposito: e o que transforma "quebrar a senha a
