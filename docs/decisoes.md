@@ -154,17 +154,44 @@ fronteira também é onde o Zod valida e onde o build decide falhar.
 
 ---
 
-## 11. Autenticação do painel será comprada pronta.
+## 11. O painel entra por senha, não por e-mail.
 
-Cloudflare Access com código por e-mail, grátis até 50 usuários.
+Uma senha só, guardada como secret do Worker (`SENHA_PAINEL`), conferida no
+servidor. Quem acerta recebe um cookie assinado e não digita de novo por 90
+dias.
 
-**Por quê.** Sem hash de senha, sem tabela de sessão, sem "esqueci minha senha"
-— e sem falha de segurança que seja culpa nossa. O Access bloqueia na borda,
-antes do código rodar.
+**O que foi decidido antes e por que mudou.** A decisão original era comprar a
+autenticação pronta: Cloudflare Access com código por e-mail, grátis até 50
+usuários, sem uma linha de login escrita à mão. O Worker descartável chegou a
+ser publicado e provou que fecha sozinho sem o Access na frente. O que derrubou
+foi o uso: a Mayara marca esgotado no meio do expediente, às vezes com a loja
+cheia, e abrir o e-mail pra buscar um código de 6 dígitos é atrito onde não
+pode ter. O Cauê já roda esse mesmo padrão de senha no painel do Cookeria
+(`/hoje`), com a conferência no servidor, e sabe que funciona no celular.
 
-**Verificar antes de escrever qualquer linha do painel:** subir um subdomínio
-descartável e fazer login num celular que não é o do Cauê. Se travar, o plano B
-é magic link próprio.
+**O que se perde.** O painel deixa de saber quem entrou — some o e-mail no
+topo da tela e some a possibilidade de registrar quem mexeu em quê. E senha é
+compartilhada: vazou num print, vazou pra todos.
+
+**Por que o risco cabe.** O painel não apaga nada (decisão 6) e não guarda dado
+de cliente. O pior caso é alguém alternar booleanos, que se desfaz com outro
+toque. Trocar a senha é um comando (`wrangler secret put SENHA_PAINEL`), e como
+o cookie é assinado com a própria senha, trocar desloga todo mundo na hora.
+
+**Como é feito.** Comparação em tempo constante; cookie `HttpOnly`, `Secure`,
+`SameSite=Lax`; o mesmo middleware cobre a tela e os dois `PATCH`, pra API não
+ficar aberta atrás de uma tela bonita. A senha nunca entra no repo: vive em
+`.dev.vars` (ignorado) no local e em secret na Cloudflare.
+
+**Pendência conhecida.** A primeira senha escolhida é palavra ligada ao negócio
+mais sequência de teclado — chutável por quem sabe o nome da loja. Foi escolha
+do Cauê, avisado. Trocar por quatro palavras soltas antes de entregar pra
+Mayara.
+
+**Senha não se escreve aqui.** Nem neste arquivo, nem em nenhum outro do repo:
+ele vai pro GitHub da cliente. O valor vive só no secret do Worker e no
+`.dev.vars` de cada máquina. Se algum dia aparecer versionada, trocar a senha
+é obrigatório — apagar a linha não basta, o git guarda.
 
 ---
 
@@ -197,15 +224,19 @@ contraste nos dois estados (4,98:1), e não precisa de uma terceira laranja.
 ## 13. Dois Workers, um banco.
 
 `eme-praia` (em `loja/`) serve o site e a API de leitura. `eme-praia-painel`
-(em `painel/`) é o painel e a API de escrita, inteiro atrás do Cloudflare
-Access. Os dois têm binding pro mesmo D1.
+(em `painel/`) é o painel e a API de escrita, inteiro atrás da senha. Os dois
+têm binding pro mesmo D1.
 
-**Por quê.** O Access, hoje, protege um Worker inteiro pelo botão "Protect
-this Worker behind Access", e isso funciona no `workers.dev` sem domínio
-próprio. Proteger só um caminho (`/painel`) exigiria um domínio na zona, que
-não existe ainda. Com dois Workers a fronteira de segurança é o Worker
-inteiro: não há regra de caminho pra errar, e a loja não tem uma linha de
-escrita.
+**Por quê.** A fronteira de segurança é o Worker inteiro, não uma regra de
+caminho: o Worker que a visitante acessa não tem uma linha de escrita, e o que
+escreve não é acessível sem senha. Nenhum `if` de rota separa os dois, então
+não há `if` pra errar. O corte também deixa os deploys independentes — mexer no
+painel não republica a loja.
+
+**A origem do corte foi outra.** O desenho nasceu do Cloudflare Access, que
+protege um Worker inteiro e não um caminho, e exigiria um domínio próprio pra
+proteger só `/painel`. Quando o Access caiu (decisão 11), o corte ficou: as
+razões acima se sustentam sozinhas.
 
 **O custo.** Dois `wrangler.jsonc`, dois deploys, e o `database_id` repetido
 nos dois. Em dev, os scripts compartilham o estado local com

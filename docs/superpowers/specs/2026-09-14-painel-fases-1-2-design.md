@@ -1,6 +1,17 @@
-# Painel de gestão — Fase 1 (banco + API) e Fase 2 (Access + tela de estoque)
+# Painel de gestão — Fase 1 (banco + API) e Fase 2 (login + tela de estoque)
 
 Data: 2026-09-14 · Estado: aprovado pelo Cauê
+
+> **Emenda de 2026-09-14, antes de escrever a Fase 2: o login deixou de ser
+> Cloudflare Access e virou senha.** O desenho aprovado comprava a
+> autenticação pronta (código por e-mail). Na hora de executar, o Cauê pediu
+> senha: a Mayara marca esgotado no meio do expediente e buscar código no
+> e-mail é atrito onde não pode ter. O Worker descartável do teste chegou a
+> ser publicado, provou que fecha sozinho sem o Access, e foi apagado. O
+> motivo completo e o que se perde estão na decisão 11. Mudam a seção 2a
+> (vira o login por senha), o middleware em 2d, os testes em 2f e a entrega
+> verificável. **O resto da Fase 2 — tela, toque, API de escrita, o site
+> reagindo — não muda uma linha.**
 
 ## O problema
 
@@ -18,8 +29,8 @@ Site estático (decisão 1). Disponibilidade é booleano, nunca quantidade
 (decisão 2). Dado separado por frequência de mudança (decisão 3). Preço em
 centavos (4). Slug congelado (5). Nada excluído, tudo arquivado (6). Grade
 adulto por produto, kids como variante fixa que nunca esgota (8). Um deploy
-por cliente (9). Fronteira única de dados (10). Login comprado pronto:
-Cloudflare Access (11).
+por cliente (9). Fronteira única de dados (10). Login por senha conferida no
+servidor, com cookie assinado (11, reescrita).
 
 ## Fatos da conta Cloudflare que moldaram o desenho
 
@@ -33,16 +44,18 @@ Conferidos em 2026-09-14 com `wrangler whoami`, `deployments list` e `d1 list`:
   só importa na Fase 3).
 - Não há domínio próprio na zona. O domínio da Mayara ainda não foi
   registrado.
-- O Access protege um Worker inteiro pelo botão "Protect this Worker behind
-  Access" (aba Access do Worker), cobrindo a URL `workers.dev`. É tudo ou
-  nada por Worker. Access por caminho exigiria domínio na zona.
+- O Cookeria já roda um painel por senha em `/hoje`: a página é pública, mas
+  a senha vai pro servidor (`POST /api/hoje/login`), não é conferida no
+  navegador. É o padrão que o Cauê conhece e que a decisão 11 adota aqui.
+- Secret de Worker (`wrangler secret put`) é o lugar da senha: fica fora do
+  repo, fora do `wrangler.jsonc` e fora do bundle.
 
 ## Decisão: dois Workers, um banco
 
-| Worker | URL (até o domínio existir) | Faz | Access |
+| Worker | URL (até o domínio existir) | Faz | Pede senha |
 |---|---|---|---|
 | `eme-praia` | `eme-praia.pedidos-jp.workers.dev` | serve `loja/out` como assets e a API de **leitura** | não |
-| `eme-praia-painel` | `eme-praia-painel.pedidos-jp.workers.dev` | tela do painel e a API de **escrita** | sim, "All traffic" |
+| `eme-praia-painel` | `eme-praia-painel.pedidos-jp.workers.dev` | tela do painel e a API de **escrita** | sim, todas as rotas |
 
 Os dois têm binding `DB` pro mesmo D1, chamado `eme-praia`.
 
@@ -70,7 +83,7 @@ clientes/eme-praia/
     components/DisponibilidadeProvider.tsx
     .env.example             API_URL=
   painel/
-    src/index.ts             Hono: middleware de Access, tela, API de escrita
+    src/index.ts             Hono: middleware de senha, login, tela, API de escrita
     src/tela.tsx             a lista de produtos com os toggles (JSX do Hono)
     public/painel.js         o script dos toques
     migrations/0001_catalogo.sql
@@ -206,27 +219,55 @@ produção. `loja/.env.example` documenta.
 
 ---
 
-## Fase 2 — Access, tela de estoque, site reagindo
+## Fase 2 — login, tela de estoque, site reagindo
 
-### 2a. Teste do Access antes de qualquer código do painel (decisão 11)
+### 2a. Login por senha (decisão 11)
 
-Worker de rascunho `acesso-teste`, dez linhas, responde
-`logado como <e-mail>` lendo `ctx.access.getIdentity()`. Ligar "Protect this
-Worker behind Access", "All traffic", política liberando dois e-mails (Cauê e
-Mayara), login por código no e-mail (One-time PIN). Login de um celular que
-não é o do Cauê.
+Uma senha só, em `SENHA_PAINEL`: secret do Worker em produção
+(`wrangler secret put`), `.dev.vars` no local. Nunca no repo, nunca no
+`wrangler.jsonc`.
 
-O teste confirma: o código chega; a tela do Access é usável no celular; o
-Worker enxerga o e-mail. Resultado registrado na decisão 11. Depois o Worker é
-apagado.
+**As rotas.**
 
-Bifurcações previstas:
+| Rota | Faz |
+|---|---|
+| `GET /entrar` | tela de login: um campo de senha, um botão. Com cookie válido, redireciona pra `/` |
+| `POST /entrar` | confere a senha. Acertou: grava o cookie e redireciona pra `/`. Errou: a mesma tela com "Senha errada.", status 401 |
 
-- `ctx.access` não existe no Hono → validar o header
-  `Cf-Access-Jwt-Assertion` com a chave pública do time
-  (`https://<time>.cloudflareaccess.com/cdn-cgi/access/certs`) e o AUD da
-  aplicação. Isso vira o middleware.
-- Login trava no celular → caminho C (magic link próprio), spec novo.
+**O middleware (`exigirSenha`).** Roda antes de tudo que não seja `/entrar`.
+Cookie válido, segue. Sem cookie válido: pedido `GET` redireciona pra
+`/entrar`; qualquer outro método responde 401 JSON. Assim a API de escrita
+fica fechada pelo mesmo caminho da tela — não existe rota protegida só pela
+aparência.
+
+**O cookie.** Nome `sessao`, valor `<expiraEm>.<assinatura>`, onde `expiraEm`
+é unix em segundos e a assinatura é `HMAC-SHA256(chave: SENHA_PAINEL,
+mensagem: expiraEm)` em base64url. Conferir é recalcular o HMAC e comparar.
+
+Três consequências, todas de propósito:
+
+- Não existe tabela de sessão. O Worker não guarda nada; o cookie se prova
+  sozinho.
+- **Trocar a senha desloga todo mundo na hora**, porque a chave da assinatura
+  é a própria senha. Serve de "sair de todos os aparelhos" sem escrever tela
+  de logout.
+- Um cookie forjado precisa da senha. Saber o formato não ajuda.
+
+Atributos: `HttpOnly`, `SameSite=Lax`, `Path=/`, `Max-Age` de 90 dias. `Secure`
+só quando o pedido chegou por `https`, pra não quebrar `http://localhost` no
+dev.
+
+**Comparar sem vazar.** Senha enviada e senha certa viram `SHA-256` (32 bytes
+cada, sempre do mesmo tamanho) e são comparadas com
+`crypto.subtle.timingSafeEqual`. Comparar as strings direto vazaria o tamanho
+da senha e daria pra medir acerto por prefixo.
+
+**Contra chute em massa.** Senha errada espera ~500 ms antes de responder.
+É freio, não tranca: o que de fato segura é o tamanho da senha. A primeira
+senha escolhida é fraca e isso está anotado como pendência na decisão 11.
+
+**Onde a senha não pode aparecer:** log, mensagem de erro, URL (o formulário é
+`POST`), HTML da tela. O Worker nunca a devolve, nem mascarada.
 
 ### 2b. A tela (`GET /`)
 
@@ -263,10 +304,10 @@ Sem framework no navegador: o HTML sai pronto do Hono (JSX), e
 Sucesso devolve 200 com o estado gravado (`{ disponivel }` ou `{ temKids }`).
 Ambas atualizam `produtos.atualizado_em`.
 
-**Middleware de Access.** Antes de qualquer rota, se não houver identidade do
-Access, responde 403. Se alguém desligar a proteção no dashboard por engano, o
-painel fecha em vez de abrir. Em dev local, `.dev.vars` com `SEM_ACCESS=1`
-pula a checagem; essa variável nunca é definida em produção.
+**As duas rotas ficam atrás do `exigirSenha` da seção 2a**, pelo mesmo
+middleware da tela. `PATCH` sem cookie válido responde 401 sem tocar no banco.
+Se `SENHA_PAINEL` não existir no ambiente, o Worker recusa tudo em vez de
+abrir: falta de configuração fecha o painel, não o escancara.
 
 ### 2e. O site reage (decisão 3 saindo do papel)
 
@@ -308,13 +349,21 @@ Loja (Vitest, já instalado):
   aviso; zero produtos lança; não-200 lança.
 - `lib/aoVivo.test.ts`: as regras de mescla acima.
 
-Painel (Vitest + `@cloudflare/vitest-pool-workers`, que sobe um D1 real em
-memória com as migrations aplicadas):
+Painel (Vitest + `@cloudflare/vitest-plugin`, que sobe um D1 real em memória
+com as migrations aplicadas; ele **não** isola o armazenamento entre testes,
+então cada teste reaplica as migrations num `beforeEach`, como em
+`loja/worker/apply-migrations.ts`):
 
+- senha certa devolve cookie assinado; senha errada devolve 401 e nenhum
+  cookie.
+- cookie forjado, cookie com assinatura de outra senha e cookie vencido são
+  recusados.
+- `GET /` sem cookie redireciona pra `/entrar`; `PATCH` sem cookie responde
+  401 **e não muda o banco**.
+- sem `SENHA_PAINEL` no ambiente, tudo é recusado.
 - toggle grava e devolve o estado; segundo toggle desfaz.
 - 404 em tamanho inexistente e em produto inexistente.
 - 400 em corpo inválido.
-- 403 sem identidade quando `SEM_ACCESS` não está definido.
 
 Depois, à mão: o Cauê no celular dele, depois a Mayara no dela. Marca um
 tamanho esgotado no painel, abre a loja, o botão aparece riscado em até 30 s.
@@ -323,24 +372,28 @@ tamanho esgotado no painel, abre a loja, o botão aparece riscado em até 30 s.
 
 - README: tabela de fases, mapa de pastas (`painel/` deixa de ser "a partir
   da Fase 1"), seção "Rodando" com os dois Workers.
+- README: tabela de fases, mapa de pastas, seção "Rodando" com os dois
+  Workers.
 - `docs/runbook-caue.md`: como subir os dois Workers em dev, como aplicar
-  migration local e remota, como conferir o Access, o que fazer se
-  `/api/catalogo.json` cair.
-- `docs/stack.md`: Hono, Zod, wrangler, `@cloudflare/vitest-pool-workers`
-  com versão real de `node_modules`; D1 sai de "para onde isso vai".
-- `docs/decisoes.md`: resultado do teste na decisão 11; decisão 13 (dois
-  Workers, um banco, e por quê); nota na decisão 3 dizendo que o overlay
-  existe e carrega `temKids`.
+  migration local e remota, **como trocar a senha do painel** e o que isso
+  causa (todo mundo deslogado), o que fazer se `/api/catalogo.json` cair.
+- `docs/stack.md`: Hono, Zod, wrangler, `@cloudflare/vitest-plugin` com
+  versão real de `node_modules`; a linha do Cloudflare Access sai.
+- `docs/decisoes.md`: decisão 11 reescrita (senha, o que se perde, a senha
+  fraca como pendência); decisão 13 sem depender do Access; nota na decisão 3
+  dizendo que o overlay existe e carrega `temKids`.
 
 ### Entrega verificável da Fase 2
 
 1. Testes da loja e do painel passam.
-2. `eme-praia-painel.pedidos-jp.workers.dev` pede código no e-mail; e-mail
-   fora da política é recusado; Mayara entra do celular dela.
+2. `eme-praia-painel.pedidos-jp.workers.dev` cai na tela de senha; senha errada
+   é recusada; senha certa entra e o celular não pede de novo ao voltar.
+   Mayara entra do celular dela.
 3. Toque num tamanho muda a cor na hora; recarregar a página mantém; a loja
    mostra o tamanho riscado em até 30 s sem rebuild.
 4. Chave kids desligada some com a fileira "Linha kids" da loja em até 30 s.
-5. Com a proteção do Access desligada no dashboard, o painel responde 403.
+5. `PATCH` direto na API, sem cookie, responde 401 e não muda o banco.
+6. Trocar `SENHA_PAINEL` e fazer deploy derruba a sessão do celular.
 
 ---
 

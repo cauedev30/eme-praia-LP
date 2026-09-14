@@ -1,12 +1,14 @@
-# Painel — Fase 2 (Cloudflare Access + tela de estoque + site reagindo) — Plano de implementação
+# Painel — Fase 2 (login por senha + tela de estoque + site reagindo) — Plano de implementação
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A Mayara abre `eme-praia-painel.pedidos-jp.workers.dev` no celular, entra com código no e-mail, vê os produtos e toca num tamanho adulto pra alternar disponível/esgotado; por produto, uma chave "Tem versão kids". A loja reflete o toque em até 30 s, sem rebuild.
+> **Revisado em 2026-09-14: o login mudou de Cloudflare Access pra senha.** Ver a emenda no topo do spec e a decisão 11 reescrita. A **Task 0 (teste do Access no celular) deixou de existir** — não há mais gate de dashboard antes de escrever código. A Task 1 virou o login por senha; as Tasks 2 e 3 mudaram só como os testes se autenticam; as Tasks 4 e 5 não mudaram.
 
-**Architecture:** O Worker `eme-praia-painel` (Hono) ganha um middleware que exige identidade do Cloudflare Access, uma tela em HTML gerada por JSX do Hono e uma API de escrita com dois `PATCH` validados por Zod. O Worker da loja ganha `GET /api/disponibilidade.json` (30 s de cache). No site, um `DisponibilidadeProvider` busca esse JSON no navegador e `useProdutoAoVivo(produto)` entrega aos cards e à página do produto o produto com `tamanhos` e `temKids` corrigidos.
+**Goal:** A Mayara abre `eme-praia-painel.pedidos-jp.workers.dev` no celular, digita a senha uma vez, vê os produtos e toca num tamanho adulto pra alternar disponível/esgotado; por produto, uma chave "Tem versão kids". A loja reflete o toque em até 30 s, sem rebuild.
 
-**Tech Stack:** O da Fase 1 (Next 14 estático, Hono 4.13, Zod 4.6, wrangler 4.131, `@cloudflare/vitest-plugin` 1.1, Vitest 4). Novo: `@hono/zod-validator` 0.9.1 no painel. Cloudflare Access (Zero Trust, plano grátis) configurado no dashboard.
+**Architecture:** O Worker `eme-praia-painel` (Hono) ganha uma tela de login, um middleware que exige cookie de sessão assinado, uma tela de estoque em HTML gerada por JSX do Hono e uma API de escrita com dois `PATCH` validados por Zod. O Worker da loja ganha `GET /api/disponibilidade.json` (30 s de cache). No site, um `DisponibilidadeProvider` busca esse JSON no navegador e `useProdutoAoVivo(produto)` entrega aos cards e à página do produto o produto com `tamanhos` e `temKids` corrigidos.
+
+**Tech Stack:** O da Fase 1 (Next 14 estático, Hono 4.13, Zod 4.6, wrangler 4.131, `@cloudflare/vitest-plugin` 1.1, Vitest 4). Novo: `@hono/zod-validator` 0.9.1 e JSX do Hono no painel. Nenhuma dependência de autenticação: o login usa só `crypto.subtle`, que o runtime já tem.
 
 Spec: `docs/superpowers/specs/2026-09-14-painel-fases-1-2-design.md`
 Pré-requisito: Fase 1 mesclada em `main` (plano `2026-09-14-painel-fase-1.md`).
@@ -14,12 +16,14 @@ Pré-requisito: Fase 1 mesclada em `main` (plano `2026-09-14-painel-fase-1.md`).
 ## Global Constraints
 
 - Todo comando roda na pasta indicada em cada step (`loja/` ou `painel/`). Os `git` rodam na raiz do repo `eme-praia`. Comandos são pra Git Bash.
-- Commits saem da conta `cauefranco01@gmail.com`. Toda mensagem termina com `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+- Commits saem da conta `cauefranco01@gmail.com`. Toda mensagem termina com o trailer `Co-Authored-By:` do modelo que escreveu o commit — os exemplos abaixo mostram o formato, não o nome a usar. A Fase 1 saiu com `Claude Fable 5.1`; a Fase 2 começou com `Claude Opus 5 (1M context)`.
 - **Nada do MazyOS entra neste repo.** `git rev-parse --show-toplevel` tem que devolver `.../clientes/eme-praia`.
 - Branch de trabalho: `painel-fase-2`, a partir de `main`.
-- **Task 0 é bloqueante.** Nenhuma linha do painel é escrita antes do teste do Access ter passado num celular que não é o do Cauê (decisão 11).
-- Nomes fixos: Worker `eme-praia-painel`; binding `DB`; variável `SEM_ACCESS` (só em `.dev.vars` e nos testes; nunca em produção).
-- Rotas de escrita: `PATCH /api/produtos/:id/tamanhos/:tamanho` com `{ disponivel: boolean }`; `PATCH /api/produtos/:id` com `{ temKids: boolean }`. 400 corpo inválido, 404 não encontrado, 403 sem identidade. Sucesso devolve 200 com o estado gravado.
+- Nomes fixos: Worker `eme-praia-painel`; binding `DB`; secret `SENHA_PAINEL`; cookie `sessao`; rota de login `/entrar`.
+- **A senha nunca entra no repo.** Em produção é secret (`wrangler secret put SENHA_PAINEL`); no local, `painel/.dev.vars` (ignorado pelo git). Nunca em `wrangler.jsonc`, nunca num arquivo versionado, nunca num log ou mensagem de erro. Nos testes, uma senha de teste literal — que não é a de produção.
+- **Sem `SENHA_PAINEL` no ambiente, o painel recusa tudo.** Falta de configuração fecha, não abre.
+- Rotas de escrita: `PATCH /api/produtos/:id/tamanhos/:tamanho` com `{ disponivel: boolean }`; `PATCH /api/produtos/:id` com `{ temKids: boolean }`. 400 corpo inválido, 404 não encontrado, 401 sem cookie válido. Sucesso devolve 200 com o estado gravado.
+- Toda rota que não seja `/entrar` passa pelo middleware `exigirSenha`. `GET` sem cookie redireciona pra `/entrar`; qualquer outro método responde 401 JSON sem tocar no banco.
 - Formato de `/api/disponibilidade.json`: `{ [slug]: { temKids: boolean, tamanhos: { [tamanho]: boolean } } }`, só produtos ativos, `Cache-Control: public, max-age=30, s-maxage=30`.
 - Texto do aviso de falha, literal: `Não salvou. Tenta de novo.` Rótulo da chave, literal: `Tem versão kids`.
 - Cores da marca (de `loja/tailwind.config.ts`): laranja `#FB7F20`, terra `#B35207`, grafite `#323233`, breu `#1F1F20`, gelo `#FAFAFA`, concha `#E7E6E2`. Regra: laranja preenche, terra escreve (decisão 12).
@@ -29,113 +33,27 @@ Pré-requisito: Fase 1 mesclada em `main` (plano `2026-09-14-painel-fase-1.md`).
 
 ---
 
-### Task 0: Teste do Access num Worker descartável (decisão 11)
-
-Esta task é do Cauê com o controller. O código é de dez linhas; o que se testa é o dashboard e o celular.
+### Task 1: Login por senha — sessão assinada, middleware e testes com D1 em memória
 
 **Files:**
-- Nenhum no repo. O Worker de rascunho vive fora do repo (na pasta de scratchpad da sessão) e é apagado no fim.
-- Modify (no fim): `docs/decisoes.md` (resultado na decisão 11)
-
-- [ ] **Step 1: Worker de rascunho**
-
-Numa pasta temporária **fora** do repo (ex.: o scratchpad da sessão), criar `acesso-teste/wrangler.jsonc`:
-
-```jsonc
-{
-  "name": "acesso-teste",
-  "main": "index.js",
-  "compatibility_date": "2026-09-01"
-}
-```
-
-e `acesso-teste/index.js`:
-
-```js
-// Teste da decisao 11. Se o Access estiver ligado neste Worker, ctx.access
-// existe e getIdentity() devolve quem logou. Sem Access, ctx.access e undefined.
-export default {
-  async fetch(request, env, ctx) {
-    if (!ctx.access) return new Response('sem Access neste pedido', { status: 403 })
-    const identidade = await ctx.access.getIdentity()
-    return new Response(`logado como ${identidade?.email ?? '(sem e-mail)'}`)
-  },
-}
-```
-
-Run (em `acesso-teste/`): `npx wrangler@4.131.2 deploy`
-Expected: `https://acesso-teste.pedidos-jp.workers.dev`.
-
-Run: `curl -s -w "\n%{http_code}\n" https://acesso-teste.pedidos-jp.workers.dev/`
-Expected: `sem Access neste pedido` e `403`. (Prova que o Worker fecha sozinho quando o Access não está na frente.)
-
-- [ ] **Step 2: Ligar o Access no dashboard (Cauê)**
-
-1. `dash.cloudflare.com` → Workers & Pages → `acesso-teste` → aba **Access** → **Protect this Worker behind Access** → **All traffic**.
-2. Se for a primeira vez usando Zero Trust na conta, o dashboard pede um nome de time (vira `<time>.cloudflareaccess.com`) e o plano grátis. Anotar o nome do time.
-3. A política inicial oferece "Cloudflare account" ou "Email domain". Escolher qualquer uma pra criar, depois **Apply Access**.
-4. Zero Trust → Access → Applications → `acesso-teste` → Policies → editar a política: Action **Allow**, Include → **Emails** → o e-mail do Cauê **e** o e-mail da Mayara. Salvar.
-5. Zero Trust → Settings → Authentication → conferir que **One-time PIN** está entre os métodos (é o padrão).
-
-- [ ] **Step 3: Login do celular emprestado**
-
-Num celular que **não** é o do Cauê (ou o da Mayara, com o e-mail dela): abrir `https://acesso-teste.pedidos-jp.workers.dev/`.
-
-Expected, na ordem:
-1. Tela do Cloudflare Access pedindo e-mail.
-2. Código de 6 dígitos chega no e-mail em menos de 1 minuto.
-3. Depois do código, a página mostra `logado como <o e-mail digitado>`.
-4. Testar um e-mail **fora** da política: o Access recusa antes de mandar código, ou manda e recusa depois. Qualquer um dos dois serve.
-
-Anotar: quanto tempo o código levou; se a tela do Access foi legível no celular; se pediu algo confuso.
-
-- [ ] **Step 4: Registrar e apagar**
-
-Em `docs/decisoes.md`, na decisão 11, substituir o parágrafo que começa com **Verificar antes de escrever qualquer linha do painel** por:
-
-```markdown
-**Verificado em <data> num <modelo do celular>, e-mail <qual>.** Código
-chegou em <tempo>; a tela do Access funcionou no celular; o Worker leu o
-e-mail com `ctx.access.getIdentity()`. E-mail fora da política foi recusado.
-O Worker de teste foi apagado.
-```
-
-(preencher os quatro campos com o que aconteceu.)
-
-Run (em `acesso-teste/`): `npx wrangler@4.131.2 delete`
-Expected: Worker removido. Conferir em Zero Trust → Access → Applications que a aplicação `acesso-teste` sumiu; se ficou, apagar à mão.
-
-Run (raiz do repo):
-```bash
-git checkout -b painel-fase-2
-git add docs/decisoes.md
-git commit -m "docs: decisao 11 verificada — Access por codigo no e-mail funciona no celular
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
-```
-
-**Se falhar:** `ctx.access` indefinido mesmo com Access ligado → parar e avisar o Cauê; o plano B é validar o header `Cf-Access-Jwt-Assertion` com a chave pública em `https://<time>.cloudflareaccess.com/cdn-cgi/access/certs`, e a Task 1 precisa ser reescrita. Login travando no celular → parar; o caminho C (magic link próprio) precisa de spec novo.
-
----
-
-### Task 1: Base do painel — middleware do Access e testes com D1 em memória
-
-**Files:**
-- Modify: `painel/src/index.ts`
-- Create: `painel/src/acesso.ts`
-- Create: `painel/src/acesso.test.ts`
+- Create: `painel/src/sessao.ts`
+- Create: `painel/src/sessao.test.ts`
+- Create: `painel/src/login.tsx`
+- Create: `painel/src/login.test.ts`
+- Create: `painel/src/teste-ajuda.ts`
 - Create: `painel/src/apply-migrations.ts`
 - Create: `painel/src/env.d.ts`
 - Create: `painel/vitest.config.ts`
-- Create: `painel/.dev.vars`
-- Create: `painel/.dev.vars.example`
+- Create: `painel/.dev.vars.example` (e `.dev.vars`, que não é versionado)
+- Rename + rewrite: `painel/src/index.ts` → `painel/src/index.tsx`
+- Modify: `painel/wrangler.jsonc` (`main` aponta pro `.tsx`)
 - Modify: `painel/package.json` (devDependencies, script `test`)
-- Modify: `painel/tsconfig.json` (types do plugin)
+- Modify: `painel/tsconfig.json` (linha `types`)
 
 **Interfaces:**
-- Produces: `Env = { DB: D1Database; SEM_ACCESS?: string }` e `Variaveis = { email: string }` em `src/index.ts`; `app: Hono<{ Bindings: Env; Variables: Variaveis }>` exportado (named) além do `export default app`; middleware `exigirAccess` em `src/acesso.ts`. Tasks 2 e 3 registram rotas em `app`.
+- Produces: `Env = { DB: D1Database; SENHA_PAINEL?: string }` e `Variaveis = { senha: string }` em `src/login.tsx`, reexportados por `src/index.tsx`; `app: Hono<{ Bindings: Env; Variables: Variaveis }>` exportado **named** além do `export default app` — as Tasks 2 e 3 registram rotas nesse `app` e os testes o importam de `./index`; middleware `exigirSenha` e sub-app `login` em `src/login.tsx`; `SENHA_TESTE`, `ambiente()` e `comSessao()` em `src/teste-ajuda.ts`, usados pelos testes das Tasks 2 e 3.
 
-- [ ] **Step 1: Dependências de teste**
+- [ ] **Step 1: Dependências de teste e configuração**
 
 Run (em `painel/`):
 ```bash
@@ -154,6 +72,8 @@ Em `painel/tsconfig.json`, trocar a linha `"types"` por:
     "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"],
 ```
 
+(O `jsx: "react-jsx"` e o `jsxImportSource: "hono/jsx"` já estão lá desde a Fase 1.)
+
 - [ ] **Step 2: Vitest com as migrations do próprio painel**
 
 Criar `painel/vitest.config.ts`:
@@ -165,7 +85,7 @@ import { cloudflareTest, readD1Migrations } from '@cloudflare/vitest-plugin'
 import { defineConfig } from 'vitest/config'
 
 // Os testes rodam dentro do workerd com um D1 em memoria que recebe as
-// migrations desta pasta (schema + seed). Cada teste comeca do seed.
+// migrations desta pasta (schema + seed).
 const raiz = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig(async () => {
@@ -185,13 +105,20 @@ export default defineConfig(async () => {
 })
 ```
 
-Criar `painel/src/apply-migrations.ts`:
+Criar `painel/src/apply-migrations.ts` (mesmo padrão de `loja/worker/apply-migrations.ts`):
 
 ```ts
-import { applyD1Migrations } from 'cloudflare:test'
+import { applyD1Migrations, reset } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
+import { beforeEach } from 'vitest'
 
-await applyD1Migrations(env.DB, env.TEST_MIGRATIONS)
+// Setup file: roda antes de cada teste. O plugin nao isola o armazenamento
+// sozinho, entao o reset() limpa os bindings e as migrations (schema + seed)
+// sao reaplicadas do zero. Assim o UPDATE de um teste nao vaza pro seguinte.
+beforeEach(async () => {
+  await reset()
+  await applyD1Migrations(env.DB, env.TEST_MIGRATIONS)
+})
 ```
 
 Criar `painel/src/env.d.ts`:
@@ -200,154 +127,485 @@ Criar `painel/src/env.d.ts`:
 declare namespace Cloudflare {
   interface Env {
     DB: D1Database
-    SEM_ACCESS?: string
+    SENHA_PAINEL?: string
     TEST_MIGRATIONS: import('cloudflare:test').D1Migration[]
   }
 }
 ```
 
-- [ ] **Step 3: Teste do middleware (falhando)**
+- [ ] **Step 3: Teste da sessão (falhando)**
 
-Criar `painel/src/acesso.test.ts`:
+Criar `painel/src/sessao.test.ts`:
 
 ```ts
-import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
-import { app } from './index'
+import { NOME_COOKIE, cookieVale, criarCookie, senhaConfere } from './sessao'
 
-// Um ExecutionContext falso. Hono passa isso adiante como c.executionCtx.
-function ctx(access?: { getIdentity(): Promise<{ email?: string } | null> }) {
-  return { waitUntil() {}, passThroughOnException() {}, props: {}, access } as unknown as ExecutionContext
-}
+const SENHA = 'quatro palavras soltas aqui'
 
-describe('exigirAccess', () => {
-  it('sem identidade do Access responde 403', async () => {
-    const r = await app.request('/', {}, { DB: env.DB }, ctx())
-    expect(r.status).toBe(403)
-    expect(await r.text()).toContain('Access')
+describe('senhaConfere', () => {
+  it('aceita a senha certa', async () => {
+    expect(await senhaConfere(SENHA, SENHA)).toBe(true)
   })
 
-  it('com identidade do Access passa', async () => {
-    const r = await app.request('/', {}, { DB: env.DB }, ctx({ getIdentity: async () => ({ email: 'mayara@exemplo.com' }) }))
-    expect(r.status).toBe(200)
+  it('recusa senha errada do mesmo tamanho', async () => {
+    expect(await senhaConfere('quatro palavras soltas aqul', SENHA)).toBe(false)
   })
 
-  it('identidade sem e-mail e recusada', async () => {
-    const r = await app.request('/', {}, { DB: env.DB }, ctx({ getIdentity: async () => ({}) }))
-    expect(r.status).toBe(403)
+  it('recusa senha errada de outro tamanho', async () => {
+    expect(await senhaConfere('x', SENHA)).toBe(false)
   })
 
-  it('SEM_ACCESS=1 pula a checagem (so em dev local)', async () => {
-    const r = await app.request('/', {}, { DB: env.DB, SEM_ACCESS: '1' }, ctx())
-    expect(r.status).toBe(200)
+  it('recusa senha vazia', async () => {
+    expect(await senhaConfere('', SENHA)).toBe(false)
+  })
+
+  it('recusa prefixo da senha certa', async () => {
+    expect(await senhaConfere('quatro palavras', SENHA)).toBe(false)
+  })
+})
+
+describe('criarCookie / cookieVale', () => {
+  it('o cookie que ele cria, ele aceita', async () => {
+    const { valor } = await criarCookie(SENHA)
+    expect(await cookieVale(valor, SENHA)).toBe(true)
+  })
+
+  it('o nome do cookie e sessao', () => {
+    expect(NOME_COOKIE).toBe('sessao')
+  })
+
+  it('expira em 90 dias', async () => {
+    const agora = Date.UTC(2026, 0, 1)
+    const { expiraEm } = await criarCookie(SENHA, agora)
+    expect(expiraEm).toBe(Math.floor(agora / 1000) + 90 * 24 * 60 * 60)
+  })
+
+  it('cookie de outra senha e recusado: trocar a senha desloga todo mundo', async () => {
+    const { valor } = await criarCookie(SENHA)
+    expect(await cookieVale(valor, 'a senha nova')).toBe(false)
+  })
+
+  it('cookie vencido e recusado', async () => {
+    const { valor } = await criarCookie(SENHA, Date.UTC(2026, 0, 1))
+    expect(await cookieVale(valor, SENHA, Date.UTC(2026, 0, 1))).toBe(true)
+    expect(await cookieVale(valor, SENHA, Date.UTC(2026, 6, 1))).toBe(false)
+  })
+
+  it('esticar a validade sem reassinar nao cola', async () => {
+    const { valor, expiraEm } = await criarCookie(SENHA)
+    const assinatura = valor.slice(valor.indexOf('.') + 1)
+    const esticado = `${expiraEm + 999999}.${assinatura}`
+    expect(await cookieVale(esticado, SENHA)).toBe(false)
+  })
+
+  it('assinatura adulterada e recusada', async () => {
+    const { valor, expiraEm } = await criarCookie(SENHA)
+    expect(await cookieVale(`${expiraEm}.naoEhAAssinatura`, SENHA)).toBe(false)
+    expect(await cookieVale(`${valor}x`, SENHA)).toBe(false)
+  })
+
+  it('lixo e ausencia sao recusados sem explodir', async () => {
+    for (const lixo of [undefined, '', '.', 'abc', 'abc.def', '123.', `${Date.now()}`]) {
+      expect(await cookieVale(lixo, SENHA)).toBe(false)
+    }
   })
 })
 ```
 
 Run (em `painel/`): `npm test`
-Expected: FAIL, `app` não é exportado de `./index` (só existe `default`).
+Expected: FAIL, `./sessao` não existe.
 
-- [ ] **Step 4: Middleware e app**
+- [ ] **Step 4: A sessão**
 
-Criar `painel/src/acesso.ts`:
+Criar `painel/src/sessao.ts`:
 
 ```ts
-import type { MiddlewareHandler } from 'hono'
+// Login por senha (decisao 11). Nao existe tabela de sessao: o cookie se
+// prova sozinho por HMAC, e a chave do HMAC e a propria senha. Consequencia
+// de proposito: trocar SENHA_PAINEL invalida todo cookie ja emitido, o que
+// faz as vezes de "sair de todos os aparelhos" sem escrever tela de logout.
 
-// Defesa em profundidade. O Access bloqueia na borda, antes deste codigo
-// rodar; mas se alguem desligar a protecao no dashboard por engano, este
-// middleware fecha o painel em vez de deixar aberto.
-//
-// ctx.access so existe quando o pedido passou pelo Access
-// (docs: workers/configuration/cloudflare-access). Nao propaga por service
-// binding, mas o painel nao usa nenhum.
+export const NOME_COOKIE = 'sessao'
+export const DURACAO_SEGUNDOS = 90 * 24 * 60 * 60
 
-type Identidade = { email?: string }
-type CtxComAccess = ExecutionContext & {
-  access?: { getIdentity(): Promise<Identidade | null> }
+const bytes = (texto: string) => new TextEncoder().encode(texto)
+
+/** Compara sem vazar tamanho nem prefixo: os dois viram 32 bytes antes.
+ *  Comparar as strings direto daria pra medir acerto por caractere. */
+export async function senhaConfere(enviada: string, certa: string): Promise<boolean> {
+  const [a, b] = await Promise.all([
+    crypto.subtle.digest('SHA-256', bytes(enviada)),
+    crypto.subtle.digest('SHA-256', bytes(certa)),
+  ])
+  return crypto.subtle.timingSafeEqual(a, b)
 }
 
-export type Env = {
-  DB: D1Database
-  /** So em .dev.vars. Nunca em producao. */
-  SEM_ACCESS?: string
+function base64url(dados: ArrayBuffer): string {
+  const binario = String.fromCharCode(...new Uint8Array(dados))
+  return btoa(binario).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
 }
 
-export type Variaveis = { email: string }
+async function assinar(expiraEm: number, senha: string): Promise<string> {
+  const chave = await crypto.subtle.importKey('raw', bytes(senha), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  return base64url(await crypto.subtle.sign('HMAC', chave, bytes(String(expiraEm))))
+}
 
-export const exigirAccess: MiddlewareHandler<{ Bindings: Env; Variables: Variaveis }> = async (c, next) => {
-  if (c.env.SEM_ACCESS === '1') {
-    c.set('email', 'dev@local')
-    return next()
-  }
+/** Valor do cookie: `<expiraEm em segundos>.<assinatura>`. */
+export async function criarCookie(
+  senha: string,
+  agora: number = Date.now(),
+): Promise<{ valor: string; expiraEm: number }> {
+  const expiraEm = Math.floor(agora / 1000) + DURACAO_SEGUNDOS
+  return { valor: `${expiraEm}.${await assinar(expiraEm, senha)}`, expiraEm }
+}
 
-  let ctx: CtxComAccess | undefined
-  try {
-    ctx = c.executionCtx as CtxComAccess
-  } catch {
-    ctx = undefined // app.request() sem contexto
-  }
+export async function cookieVale(
+  valor: string | undefined,
+  senha: string,
+  agora: number = Date.now(),
+): Promise<boolean> {
+  if (!valor) return false
 
-  const identidade = await ctx?.access?.getIdentity().catch(() => null)
-  if (!identidade?.email) {
-    return c.text('Painel sem Cloudflare Access na frente. Ver docs/runbook-caue.md.', 403)
-  }
+  const corte = valor.indexOf('.')
+  if (corte < 1) return false
 
-  c.set('email', identidade.email)
-  await next()
+  const expiraEm = Number(valor.slice(0, corte))
+  if (!Number.isSafeInteger(expiraEm) || expiraEm * 1000 <= agora) return false
+
+  const recebida = valor.slice(corte + 1)
+  const esperada = await assinar(expiraEm, senha)
+  // timingSafeEqual explode com tamanhos diferentes, e o tamanho da
+  // assinatura e fixo: tamanho errado ja e cookie invalido.
+  if (recebida.length !== esperada.length) return false
+  return crypto.subtle.timingSafeEqual(bytes(recebida), bytes(esperada))
 }
 ```
 
-Substituir `painel/src/index.ts` por:
+Run (em `painel/`): `npm test`
+Expected: os 13 testes de `sessao.test.ts` passam.
+
+- [ ] **Step 5: Ajuda dos testes**
+
+Criar `painel/src/teste-ajuda.ts`:
 
 ```ts
-import { Hono } from 'hono'
-import { exigirAccess, type Env, type Variaveis } from './acesso'
+import { env } from 'cloudflare:workers'
+import { NOME_COOKIE, criarCookie } from './sessao'
 
-// Painel de gestao da Eme Praia. Inteiro atras do Cloudflare Access
-// (decisao 11 e 13): todo pedido passa por exigirAccess antes de qualquer
-// rota. As rotas entram nas proximas tasks.
+// Senha usada so nos testes. A de producao vive em secret e nunca aparece
+// em arquivo versionado.
+export const SENHA_TESTE = 'senha de teste do painel'
+
+/** Bindings pra app.request(): o D1 em memoria mais a senha de teste. */
+export const ambiente = () => ({ DB: env.DB, SENHA_PAINEL: SENHA_TESTE })
+
+/** Headers com um cookie de sessao valido pra SENHA_TESTE. */
+export async function comSessao(extras: Record<string, string> = {}): Promise<Record<string, string>> {
+  const { valor } = await criarCookie(SENHA_TESTE)
+  return { cookie: `${NOME_COOKIE}=${valor}`, ...extras }
+}
+```
+
+- [ ] **Step 6: Teste do login e do middleware (falhando)**
+
+Criar `painel/src/login.test.ts`:
+
+```ts
+import { env } from 'cloudflare:workers'
+import { describe, expect, it } from 'vitest'
+import { app } from './index'
+import { SENHA_TESTE, ambiente, comSessao } from './teste-ajuda'
+
+function form(senha: string) {
+  return {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ senha }).toString(),
+  }
+}
+
+describe('exigirSenha', () => {
+  it('GET sem cookie redireciona pro login', async () => {
+    const r = await app.request('/', {}, ambiente())
+    expect(r.status).toBe(302)
+    expect(r.headers.get('location')).toBe('/entrar')
+  })
+
+  it('metodo que nao e GET responde 401 em JSON, nao redireciona', async () => {
+    const r = await app.request('/', { method: 'POST' }, ambiente())
+    expect(r.status).toBe(401)
+    expect(await r.json()).toEqual({ erro: 'sessao expirada' })
+  })
+
+  it('com cookie valido passa', async () => {
+    const r = await app.request('/', { headers: await comSessao() }, ambiente())
+    expect(r.status).toBe(200)
+  })
+
+  it('cookie assinado com outra senha nao passa', async () => {
+    const r = await app.request('/', { headers: await comSessao() }, { DB: env.DB, SENHA_PAINEL: 'outra senha' })
+    expect(r.status).toBe(302)
+  })
+
+  it('sem SENHA_PAINEL no ambiente, o painel fecha em vez de abrir', async () => {
+    for (const caminho of ['/', '/entrar']) {
+      const r = await app.request(caminho, {}, { DB: env.DB })
+      expect(r.status).toBe(503)
+    }
+  })
+})
+
+describe('GET /entrar', () => {
+  it('mostra o formulario de senha', async () => {
+    const r = await app.request('/entrar', {}, ambiente())
+    expect(r.status).toBe(200)
+    expect(r.headers.get('content-type')).toContain('text/html')
+
+    const html = await r.text()
+    expect(html).toContain('type="password"')
+    expect(html).toContain('name="senha"')
+    expect(html).toContain('method="post"')
+  })
+
+  it('quem ja entrou volta pro painel', async () => {
+    const r = await app.request('/entrar', { headers: await comSessao() }, ambiente())
+    expect(r.status).toBe(302)
+    expect(r.headers.get('location')).toBe('/')
+  })
+})
+
+describe('POST /entrar', () => {
+  it('senha certa grava o cookie e volta pro painel', async () => {
+    const r = await app.request('/entrar', form(SENHA_TESTE), ambiente())
+    expect(r.status).toBe(302)
+    expect(r.headers.get('location')).toBe('/')
+
+    const cookie = r.headers.get('set-cookie') ?? ''
+    expect(cookie).toContain('sessao=')
+    expect(cookie).toContain('HttpOnly')
+    expect(cookie).toContain('SameSite=Lax')
+    expect(cookie).toContain('Max-Age=7776000')
+  })
+
+  it('o cookie que ela recebe abre o painel', async () => {
+    const entrada = await app.request('/entrar', form(SENHA_TESTE), ambiente())
+    const cookie = (entrada.headers.get('set-cookie') ?? '').split(';')[0]
+
+    const r = await app.request('/', { headers: { cookie } }, ambiente())
+    expect(r.status).toBe(200)
+  })
+
+  it('senha errada nao grava cookie', async () => {
+    const r = await app.request('/entrar', form('nao e a senha'), ambiente())
+    expect(r.status).toBe(401)
+    expect(r.headers.get('set-cookie')).toBeNull()
+    expect(await r.text()).toContain('Senha errada.')
+  })
+
+  it('corpo sem o campo senha nao grava cookie', async () => {
+    const r = await app.request(
+      '/entrar',
+      { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: '' },
+      ambiente(),
+    )
+    expect(r.status).toBe(401)
+    expect(r.headers.get('set-cookie')).toBeNull()
+  })
+
+  it('a senha nunca volta no HTML', async () => {
+    const html = await (await app.request('/entrar', form('nao e a senha'), ambiente())).text()
+    expect(html).not.toContain(SENHA_TESTE)
+    expect(html).not.toContain('nao e a senha')
+  })
+
+  it('Secure so em https, pra nao quebrar o dev em localhost', async () => {
+    const seguro = await app.request('https://painel.test/entrar', form(SENHA_TESTE), ambiente())
+    expect(seguro.headers.get('set-cookie')).toContain('Secure')
+
+    const local = await app.request('http://localhost:8787/entrar', form(SENHA_TESTE), ambiente())
+    expect(local.headers.get('set-cookie')).not.toContain('Secure')
+  })
+})
+```
+
+Run (em `painel/`): `npm test`
+Expected: FAIL, `app` não é exportado de `./index` (hoje só existe `default`) e `/entrar` não existe.
+
+- [ ] **Step 7: O login e o middleware**
+
+Criar `painel/src/login.tsx`:
+
+```tsx
+import { Hono, type MiddlewareHandler } from 'hono'
+import { getCookie, setCookie } from 'hono/cookie'
+import type { FC } from 'hono/jsx'
+import { DURACAO_SEGUNDOS, NOME_COOKIE, cookieVale, criarCookie, senhaConfere } from './sessao'
+
+// A porta do painel (decisao 11). Uma senha, conferida no servidor, e um
+// cookie assinado. O mesmo middleware cobre a tela e a API de escrita: nao
+// existe rota protegida so pela aparencia.
+
+export type Env = {
+  DB: D1Database
+  /** Secret em producao, .dev.vars no local. Sem ela o painel recusa tudo. */
+  SENHA_PAINEL?: string
+}
+
+export type Variaveis = { senha: string }
+
+// Espera antes de responder senha errada. E freio contra chute em massa, nao
+// tranca: o que segura de verdade e o tamanho da senha.
+const ESPERA_ERRO_MS = 500
+
+const espera = (ms: number) => new Promise((pronto) => setTimeout(pronto, ms))
+
+export const exigirSenha: MiddlewareHandler<{ Bindings: Env; Variables: Variaveis }> = async (c, next) => {
+  const senha = c.env.SENHA_PAINEL
+  // Falta de configuracao fecha o painel; nao escancara.
+  if (!senha) return c.text('Painel sem senha configurada. Ver docs/runbook-caue.md.', 503)
+
+  c.set('senha', senha)
+  if (c.req.path === '/entrar') return next()
+
+  if (await cookieVale(getCookie(c, NOME_COOKIE), senha)) return next()
+
+  if (c.req.method === 'GET') return c.redirect('/entrar', 302)
+  return c.json({ erro: 'sessao expirada' }, 401)
+}
+
+const CSS = `
+  :root { --laranja: #FB7F20; --terra: #B35207; --grafite: #323233; --gelo: #FAFAFA; --concha: #E7E6E2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+         background: var(--gelo); color: var(--grafite); font: 16px/1.4 system-ui, sans-serif; }
+  form { width: 100%; max-width: 320px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  p { margin: 0 0 20px; font-size: 13px; color: var(--terra); }
+  label { display: block; font-size: 13px; margin-bottom: 6px; }
+  input { width: 100%; min-height: 44px; padding: 0 12px; font: inherit; border-radius: 10px;
+          border: 1px solid var(--concha); background: #fff; color: inherit; }
+  button { width: 100%; min-height: 44px; margin-top: 12px; font: inherit; font-weight: 600;
+           border: 0; border-radius: 10px; background: var(--laranja); color: var(--gelo); cursor: pointer; }
+  .erro { margin: 12px 0 0; color: var(--terra); font-size: 14px; font-weight: 600; }
+`
+
+// Nada do que ela digitou volta preenchido: a senha nao passa pelo HTML nem
+// numa ida.
+const TelaLogin: FC<{ erro?: boolean }> = ({ erro }) => (
+  <html lang="pt-BR">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="robots" content="noindex, nofollow" />
+      <title>Eme Praia — entrar</title>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+    </head>
+    <body>
+      <form method="post" action="/entrar">
+        <h1>Estoque</h1>
+        <p>Eme Praia</p>
+        <label for="senha">Senha</label>
+        <input id="senha" name="senha" type="password" autocomplete="current-password" autofocus required />
+        <button type="submit">Entrar</button>
+        {erro && <p class="erro">Senha errada.</p>}
+      </form>
+    </body>
+  </html>
+)
+
+export const login = new Hono<{ Bindings: Env; Variables: Variaveis }>()
+
+login.get('/entrar', async (c) => {
+  if (await cookieVale(getCookie(c, NOME_COOKIE), c.get('senha'))) return c.redirect('/', 302)
+  return c.html(<TelaLogin />)
+})
+
+login.post('/entrar', async (c) => {
+  const corpo = await c.req.parseBody()
+  const enviada = typeof corpo.senha === 'string' ? corpo.senha : ''
+
+  if (!(await senhaConfere(enviada, c.get('senha')))) {
+    await espera(ESPERA_ERRO_MS)
+    return c.html(<TelaLogin erro />, 401)
+  }
+
+  const { valor } = await criarCookie(c.get('senha'))
+  setCookie(c, NOME_COOKIE, valor, {
+    httpOnly: true,
+    sameSite: 'Lax',
+    path: '/',
+    maxAge: DURACAO_SEGUNDOS,
+    // Com Secure ligado o cookie nao gruda em http://localhost em alguns
+    // navegadores. Em producao o Worker so atende https, entao la ele entra.
+    secure: new URL(c.req.url).protocol === 'https:',
+  })
+  return c.redirect('/', 302)
+})
+```
+
+Apagar `painel/src/index.ts` (com `git rm`, pra o rename ficar no histórico) e criar `painel/src/index.tsx`:
+
+```tsx
+import { Hono } from 'hono'
+import { exigirSenha, login, type Env, type Variaveis } from './login'
+
+// Painel de gestao da Eme Praia. Tudo que nao e /entrar passa por
+// exigirSenha antes de qualquer rota (decisao 11). As rotas de estoque e a
+// API de escrita entram nas proximas tasks.
 
 export type { Env, Variaveis }
 
 export const app = new Hono<{ Bindings: Env; Variables: Variaveis }>()
 
-app.use('*', exigirAccess)
+app.use('*', exigirSenha)
+app.route('/', login)
 
-app.get('/', (c) => c.text(`Painel Eme Praia: em construcao. Logado como ${c.get('email')}.`))
+app.get('/', (c) => c.text('Painel Eme Praia: em construcao.'))
 
 export default app
 ```
 
-- [ ] **Step 5: Rodar e ver passar**
+Em `painel/wrangler.jsonc`, trocar a linha do `main` por:
+
+```jsonc
+  "main": "src/index.tsx",
+```
+
+- [ ] **Step 8: Rodar e ver passar**
 
 Run (em `painel/`): `npm test && npm run typecheck`
-Expected: 4 testes passando; typecheck limpo.
+Expected: 27 testes passando (13 de `sessao.test.ts` + 14 de `login.test.ts`); typecheck limpo.
 
-- [ ] **Step 6: Dev local sem Access**
+- [ ] **Step 9: Dev local com a senha**
 
 Criar `painel/.dev.vars.example`:
 
 ```
-# Copie pra .dev.vars (ignorado pelo git). So em dev local: o wrangler dev
-# nao tem o Access na frente, entao o middleware precisa ser pulado.
-SEM_ACCESS=1
+# Copie pra .dev.vars (ignorado pelo git) e ponha a senha do painel.
+# Em producao ela nao vem daqui: e secret, posta com
+#   npx wrangler secret put SENHA_PAINEL
+SENHA_PAINEL=troque-esta-senha
 ```
 
-Run (em `painel/`): `cp .dev.vars.example .dev.vars && git check-ignore .dev.vars`
-Expected: imprime `.dev.vars`.
+Run (em `painel/`):
+```bash
+cp .dev.vars.example .dev.vars
+git check-ignore .dev.vars
+```
+Expected: imprime `.dev.vars`. Se não imprimir nada, **parar**: o arquivo entraria no commit. Acrescentar `.dev.vars` ao `painel/.gitignore` antes de seguir.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add painel/
 git status --short
-git commit -m "feat(painel): middleware que exige identidade do Access e testes com D1 em memoria
+git commit -m "feat(painel): login por senha com cookie assinado e testes com D1 em memoria
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
-Conferir que `painel/.dev.vars` não aparece no status.
+Conferir que `painel/.dev.vars` **não** aparece no `git status --short`.
 
 ---
 
@@ -356,11 +614,11 @@ Conferir que `painel/.dev.vars` não aparece no status.
 **Files:**
 - Create: `painel/src/api.ts`
 - Create: `painel/src/api.test.ts`
-- Modify: `painel/src/index.ts` (monta `api` em `/api`)
+- Modify: `painel/src/index.tsx` (monta `api` em `/api`)
 - Modify: `painel/package.json` (dependencies `zod`, `@hono/zod-validator`)
 
 **Interfaces:**
-- Consumes: `Env`, `Variaveis`, `app` (Task 1); tabelas `produtos`, `tamanhos`.
+- Consumes: `Env`, `Variaveis`, `app` (Task 1); `ambiente()` e `comSessao()` de `src/teste-ajuda.ts` (Task 1); tabelas `produtos`, `tamanhos`.
 - Produces: `api: Hono` com `PATCH /produtos/:id/tamanhos/:tamanho` e `PATCH /produtos/:id`, montado em `/api`. O script da Task 3 chama essas URLs.
 
 - [ ] **Step 1: Dependências**
@@ -375,14 +633,17 @@ Criar `painel/src/api.test.ts`:
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 import { app } from './index'
+import { ambiente, comSessao } from './teste-ajuda'
 
-const dev = { DB: env.DB, SEM_ACCESS: '1' }
-
-function patch(caminho: string, corpo: unknown) {
+async function patch(caminho: string, corpo: unknown) {
   return app.request(
     caminho,
-    { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo) },
-    dev,
+    {
+      method: 'PATCH',
+      headers: await comSessao({ 'content-type': 'application/json' }),
+      body: JSON.stringify(corpo),
+    },
+    ambiente(),
   )
 }
 
@@ -430,13 +691,27 @@ describe('PATCH /api/produtos/:id/tamanhos/:tamanho', () => {
     expect((await patch('/api/produtos/top-tanga-sand/tamanhos/M', {})).status).toBe(400)
   })
 
-  it('sem Access responde 403 antes de tocar no banco', async () => {
+  it('sem cookie responde 401 antes de tocar no banco', async () => {
     const r = await app.request(
       '/api/produtos/top-tanga-sand/tamanhos/M',
       { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ disponivel: false }) },
-      { DB: env.DB },
+      ambiente(),
     )
-    expect(r.status).toBe(403)
+    expect(r.status).toBe(401)
+    expect(await disponivelNoBanco('top-tanga-sand', 'M')).toBe(1)
+  })
+
+  it('cookie assinado com outra senha nao escreve', async () => {
+    const r = await app.request(
+      '/api/produtos/top-tanga-sand/tamanhos/M',
+      {
+        method: 'PATCH',
+        headers: await comSessao({ 'content-type': 'application/json' }),
+        body: JSON.stringify({ disponivel: false }),
+      },
+      { DB: env.DB, SENHA_PAINEL: 'outra senha' },
+    )
+    expect(r.status).toBe(401)
     expect(await disponivelNoBanco('top-tanga-sand', 'M')).toBe(1)
   })
 })
@@ -515,22 +790,22 @@ api.patch('/produtos/:id', zValidator('json', CorpoKids), async (c) => {
 })
 ```
 
-Em `painel/src/index.ts`, adicionar o import e a montagem (a rota `GET /` continua):
+Em `painel/src/index.tsx`, adicionar o import e a montagem (a rota `GET /` continua):
 
-```ts
+```tsx
 import { api } from './api'
 ```
 
-e, depois de `app.use('*', exigirAccess)`:
+e, depois de `app.route('/', login)`:
 
-```ts
+```tsx
 app.route('/api', api)
 ```
 
 - [ ] **Step 4: Rodar e ver passar**
 
 Run (em `painel/`): `npm test && npm run typecheck`
-Expected: 14 testes passando (4 da Task 1 + 10 novos); typecheck limpo.
+Expected: 38 testes passando (27 da Task 1 + 11 novos); typecheck limpo.
 
 - [ ] **Step 5: Commit**
 
@@ -549,7 +824,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `painel/src/tela.tsx`
 - Create: `painel/src/tela.test.tsx`
 - Create: `painel/public/painel.js`
-- Modify: `painel/src/index.ts` (`GET /` passa a devolver a tela)
+- Modify: `painel/src/index.tsx` (`GET /` passa a devolver a tela)
 - Modify: `painel/wrangler.jsonc` (assets em `public/`)
 
 **Interfaces:**
@@ -564,12 +839,15 @@ Criar `painel/src/tela.test.tsx`:
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 import { app } from './index'
+import { ambiente, comSessao } from './teste-ajuda'
 
-const dev = { DB: env.DB, SEM_ACCESS: '1' }
+async function abrirPainel() {
+  return app.request('/', { headers: await comSessao() }, ambiente())
+}
 
 describe('GET /', () => {
   it('lista os produtos agrupados por categoria com os botoes de tamanho', async () => {
-    const r = await app.request('/', {}, dev)
+    const r = await abrirPainel()
     expect(r.status).toBe(200)
     expect(r.headers.get('content-type')).toContain('text/html')
 
@@ -587,20 +865,20 @@ describe('GET /', () => {
   it('reflete o estado do banco', async () => {
     await env.DB.prepare(`UPDATE tamanhos SET disponivel = 0 WHERE produto_id = 'top-tanga-sand' AND tamanho = 'M'`).run()
     await env.DB.prepare(`UPDATE produtos SET tem_kids = 0 WHERE id = 'top-tanga-sand'`).run()
-    const html = await (await app.request('/', {}, dev)).text()
+    const html = await (await abrirPainel()).text()
     expect(html).toContain('data-produto="top-tanga-sand" data-tamanho="M" aria-pressed="false"')
     expect(html).toMatch(/data-kids="top-tanga-sand"(?![^>]*checked)/)
   })
 
   it('produto arquivado nao aparece', async () => {
     await env.DB.prepare(`UPDATE produtos SET ativo = 0 WHERE id = 'top-tanga-sand'`).run()
-    const html = await (await app.request('/', {}, dev)).text()
+    const html = await (await abrirPainel()).text()
     expect(html).not.toContain('Top Meia Taça + Tanga Lateral Sand')
   })
 
   it('escapa HTML no nome do produto', async () => {
     await env.DB.prepare(`UPDATE produtos SET nome = 'Top <b>x</b>' WHERE id = 'top-tanga-sand'`).run()
-    const html = await (await app.request('/', {}, dev)).text()
+    const html = await (await abrirPainel()).text()
     expect(html).toContain('Top &lt;b&gt;x&lt;/b&gt;')
   })
 })
@@ -642,7 +920,7 @@ const CSS = `
   #aviso { position: fixed; left: 16px; right: 16px; bottom: 16px; background: var(--breu); color: var(--gelo); padding: 14px 16px; border-radius: 10px; text-align: center; }
 `
 
-type Props = { categorias: Categoria[]; produtos: Produto[]; email: string }
+type Props = { categorias: Categoria[]; produtos: Produto[] }
 
 const Linha: FC<{ produto: Produto }> = ({ produto }) => (
   <article data-produto={produto.id}>
@@ -669,7 +947,7 @@ const Linha: FC<{ produto: Produto }> = ({ produto }) => (
   </article>
 )
 
-export const Tela: FC<Props> = ({ categorias, produtos, email }) => (
+export const Tela: FC<Props> = ({ categorias, produtos }) => (
   <html lang="pt-BR">
     <head>
       <meta charset="utf-8" />
@@ -680,7 +958,7 @@ export const Tela: FC<Props> = ({ categorias, produtos, email }) => (
     <body>
       <header>
         <h1>Estoque</h1>
-        <p>{email}</p>
+        <p>Eme Praia</p>
       </header>
       <main>
         {categorias.map((cat) => (
@@ -703,26 +981,26 @@ export const Tela: FC<Props> = ({ categorias, produtos, email }) => (
 )
 ```
 
-Em `painel/src/index.ts`, trocar a rota `GET /` por:
+Em `painel/src/index.tsx`, trocar a rota `GET /` por:
 
-```ts
+```tsx
 import { lerCatalogo } from '../../loja/worker/consultas'
 import { Tela } from './tela'
 ```
 
-```ts
+```tsx
 app.get('/', async (c) => {
   const { categorias, produtos } = await lerCatalogo(c.env.DB)
-  return c.html(<Tela categorias={categorias} produtos={produtos} email={c.get('email')} />)
+  return c.html(<Tela categorias={categorias} produtos={produtos} />)
 })
 ```
 
-Como `index.ts` passa a ter JSX, renomear o arquivo pra `painel/src/index.tsx` e atualizar `"main": "src/index.tsx"` em `painel/wrangler.jsonc`. Os imports `./index` nos testes continuam válidos.
+(`index.tsx` e o JSX já estão configurados desde a Task 1.)
 
 - [ ] **Step 3: Rodar e ver passar**
 
 Run (em `painel/`): `npm test && npm run typecheck`
-Expected: 18 testes passando; typecheck limpo.
+Expected: 42 testes passando (38 das Tasks 1 e 2 + 4 novos); typecheck limpo.
 
 - [ ] **Step 4: O script do toque**
 
@@ -750,6 +1028,12 @@ async function patch(url, corpo) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(corpo),
   })
+  // Sessao vencida (ou senha trocada): manda logar de novo em vez de
+  // mostrar "nao salvou" pra sempre.
+  if (r.status === 401) {
+    location.href = '/entrar'
+    throw new Error('401')
+  }
   if (!r.ok) throw new Error(String(r.status))
 }
 
@@ -798,8 +1082,9 @@ document.addEventListener('change', async (ev) => {
 Em `painel/wrangler.jsonc`, adicionar depois de `"compatibility_date"`:
 
 ```jsonc
-  // So o painel.js. E servido antes do Worker rodar, mas o Access cobre o
-  // Worker inteiro, entao tambem fica atras do login.
+  // So o painel.js. Assets sao servidos antes do Worker rodar, entao este
+  // arquivo fica fora do login. E por isso que ele nao tem segredo nenhum:
+  // so liga toque em fetch. Quem protege os dados e o middleware nas rotas.
   "assets": { "directory": "./public" },
 ```
 
@@ -810,7 +1095,7 @@ Run (em `painel/`):
 npm run db:migrate:local
 npm run dev
 ```
-Expected: `http://localhost:8787/` abre a tela (com `SEM_ACCESS=1` do `.dev.vars`). Tocar no "M" do primeiro produto: fica riscado na hora. Recarregar: continua riscado. Desligar a chave kids: recarregar mantém desligada. Parar o `npm run dev`, tocar num botão: aparece "Não salvou. Tenta de novo." e o botão volta.
+Expected: `http://localhost:8787/` cai na tela de senha; digitando a senha do `.dev.vars`, abre a tela de estoque e o navegador não pede de novo ao recarregar. Tocar no "M" do primeiro produto: fica riscado na hora. Recarregar: continua riscado. Desligar a chave kids: recarregar mantém desligada. Parar o `npm run dev`, tocar num botão: aparece "Não salvou. Tenta de novo." e o botão volta.
 
 Se houver Playwright disponível na sessão, conferir também com viewport de celular (390 x 844): botões com pelo menos 44 px de altura.
 
@@ -1197,7 +1482,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
-### Task 6: Deploy dos dois Workers, Access ligado, verificação de ponta a ponta e docs
+### Task 6: Deploy dos dois Workers, senha em produção, verificação de ponta a ponta e docs
 
 **Files:**
 - Modify: `README.md`
@@ -1212,44 +1497,72 @@ Run (em `painel/`): `npm run deploy`
 Expected: `https://eme-praia.pedidos-jp.workers.dev` e `https://eme-praia-painel.pedidos-jp.workers.dev`.
 
 Run: `curl -s -w "\n%{http_code}\n" https://eme-praia-painel.pedidos-jp.workers.dev/`
-Expected: `Painel sem Cloudflare Access na frente...` e `403`. O painel está fechado até o Access entrar.
+Expected: `Painel sem senha configurada...` e `503`. O painel está fechado porque o secret ainda não existe — é o comportamento certo.
 
 Run: `curl -s https://eme-praia.pedidos-jp.workers.dev/api/disponibilidade.json | head -c 200`
 Expected: JSON começando em `{"top-tanga-sand":{"temKids":true,"tamanhos":{"P":true`.
 
-- [ ] **Step 2: Access no painel (Cauê, dashboard)**
+- [ ] **Step 2: A senha em produção (Cauê, no terminal dele)**
 
-Igual à Task 0, agora no Worker `eme-praia-painel`: Workers & Pages → `eme-praia-painel` → Access → Protect → All traffic → Apply. Depois, em Zero Trust → Access → Applications → `eme-praia-painel` → Policies: Allow, Emails: o do Cauê e o da Mayara.
+A senha **não** entra no repo nem passa pelo controller por arquivo. O Cauê roda e digita:
+
+```bash
+cd painel && npx wrangler secret put SENHA_PAINEL
+```
+
+Expected: o wrangler pede o valor, esconde o que é digitado e confirma `Success! Uploaded secret SENHA_PAINEL`. O secret já vale sem novo deploy.
 
 Run: `curl -s -o /dev/null -w "%{http_code}\n" https://eme-praia-painel.pedidos-jp.workers.dev/`
-Expected: `302` (redireciona pro login do Access), não mais 403.
+Expected: `302` (redireciona pra `/entrar`), não mais 503.
 
-- [ ] **Step 3: Ponta a ponta no celular**
+Run: `curl -s https://eme-praia-painel.pedidos-jp.workers.dev/entrar | grep -c 'type="password"'`
+Expected: `1`.
 
-1. Cauê, no celular: abrir o painel, logar com o código. A tela lista os 17 produtos em duas categorias.
-2. Tocar em "M" do primeiro produto: fica riscado na hora.
-3. Abrir `https://eme-praia.pedidos-jp.workers.dev/produto/top-tanga-sand` em até 30 s: M riscado e desabilitado. Na home, o card do produto também.
-4. Desligar "Tem versão kids" do mesmo produto. Recarregar a página do produto em até 30 s: a fileira "Linha kids" sumiu.
-5. Reverter os dois toques. Conferir que voltaram no site.
-6. Mayara, no celular dela, com o e-mail dela: repete 1 e 2. Anotar o que ela estranhou.
+Conferir que a senha **não** vaza como variável de texto: Workers & Pages → `eme-praia-painel` → Settings → Variables. `SENHA_PAINEL` tem que aparecer como **Secret** (valor escondido), nunca como plain text.
 
-- [ ] **Step 4: README**
+- [ ] **Step 3: A API não abre sem cookie**
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" -X PATCH \
+  -H 'content-type: application/json' -d '{"disponivel":false}' \
+  https://eme-praia-painel.pedidos-jp.workers.dev/api/produtos/top-tanga-sand/tamanhos/M
+```
+Expected: `401`.
+
+Conferir que não escreveu:
+```bash
+curl -s https://eme-praia.pedidos-jp.workers.dev/api/disponibilidade.json | grep -o '"top-tanga-sand":{[^}]*}[^}]*}'
+```
+Expected: `"M":true` continua lá.
+
+- [ ] **Step 4: Ponta a ponta no celular**
+
+1. Cauê, no celular: abrir o painel, digitar a senha. A tela lista os 17 produtos em duas categorias.
+2. Fechar o navegador e abrir de novo: **não pede senha** (o cookie durou).
+3. Tocar em "M" do primeiro produto: fica riscado na hora.
+4. Abrir `https://eme-praia.pedidos-jp.workers.dev/produto/top-tanga-sand` em até 30 s: M riscado e desabilitado. Na home, o card do produto também.
+5. Desligar "Tem versão kids" do mesmo produto. Recarregar a página do produto em até 30 s: a fileira "Linha kids" sumiu.
+6. Reverter os dois toques. Conferir que voltaram no site.
+7. Digitar uma senha errada numa aba anônima: aparece "Senha errada." e não entra.
+8. Mayara, no celular dela: recebe a senha por um canal que não é grupo, entra, repete 3. Anotar o que ela estranhou.
+
+- [ ] **Step 5: README**
 
 Na tabela **Fases**, marcar a Fase 2 como concluída. Na seção **Rodando**, adicionar no bloco de `painel/`:
 
 ```bash
-cp .dev.vars.example .dev.vars   # SEM_ACCESS=1: pula o login em dev local
-npm run dev                      # localhost:8787, a tela do painel
+cp .dev.vars.example .dev.vars   # e colocar a senha do painel
+npm run dev                      # localhost:8787, cai na tela de senha
 npm run deploy
 ```
 
 No **Mapa das pastas**, a linha de `painel/` vira:
 
 ```
-| `painel/` | O painel de gestão e a API de escrita. Cloudflare Worker + D1, inteiro atrás do Cloudflare Access. Dono das migrations |
+| `painel/` | O painel de gestão e a API de escrita. Cloudflare Worker + D1, inteiro atrás de senha. Dono das migrations |
 ```
 
-- [ ] **Step 5: Runbook**
+- [ ] **Step 6: Runbook**
 
 Em `docs/runbook-caue.md`, substituir a seção **Estado atual** por:
 
@@ -1257,8 +1570,8 @@ Em `docs/runbook-caue.md`, substituir a seção **Estado atual** por:
 ## Estado atual
 
 **Fase 2 concluída.** A Mayara marca tamanho esgotado e liga/desliga kids em
-`https://eme-praia-painel.pedidos-jp.workers.dev`, logando com código no
-e-mail. A loja reflete em até 30 s via `/api/disponibilidade.json`.
+`https://eme-praia-painel.pedidos-jp.workers.dev`, entrando com a senha do
+painel. A loja reflete em até 30 s via `/api/disponibilidade.json`.
 
 Próximo: Fase 3 (cadastro de produto, foto). Antes dela: habilitar R2 no
 dashboard (pede cartão) e decidir Workers Builds + deploy hook.
@@ -1267,26 +1580,34 @@ dashboard (pede cartão) e decidir Workers Builds + deploy hook.
 Na seção **Os dois Workers e o banco**, trocar a linha do painel por:
 
 ```
-| Painel | `painel/` | `eme-praia-painel` | tela de estoque, `PATCH /api/...`, dono das migrations. **Inteiro atrás do Access** |
+| Painel | `painel/` | `eme-praia-painel` | tela de estoque, `PATCH /api/...`, dono das migrations. **Inteiro atrás de senha** |
 ```
 
 Adicionar a seção:
 
 ```markdown
-## Access (login do painel)
+## A senha do painel
 
-Está ligado no Worker `eme-praia-painel`: Workers & Pages → o Worker → aba
-Access. A lista de e-mails que podem entrar fica em Zero Trust → Access →
-Applications → `eme-praia-painel` → Policies. Pra dar acesso a alguém, é
-só adicionar o e-mail lá. Não existe senha; o código vai por e-mail.
+Ela vive em dois lugares e em nenhum arquivo do repo:
 
-**Se o painel responder 403 com "Painel sem Cloudflare Access"**, alguém
-desligou a proteção no dashboard. É o comportamento certo: o middleware
-fecha em vez de abrir. Religar o Access resolve.
+- **Produção:** secret do Worker. Pra trocar, `cd painel && npx wrangler secret put SENHA_PAINEL` e digitar a nova. Vale na hora, sem deploy.
+- **Dev local:** `painel/.dev.vars` (ignorado pelo git). O `.dev.vars.example` diz o formato.
 
-**Se responder 200 sem pedir login**, a variável `SEM_ACCESS` vazou pra
-produção. Remover em Workers & Pages → `eme-praia-painel` → Settings →
-Variables e fazer deploy de novo. Ela só pode existir em `painel/.dev.vars`.
+**Trocar a senha desloga todo mundo.** O cookie de sessão é assinado com a
+própria senha, então trocar invalida os cookies já emitidos. É assim que se
+tira o acesso de alguém: troca e reenvia só pra quem deve ter.
+
+**Se o painel responder 503 com "Painel sem senha configurada"**, o secret
+sumiu do Worker (deploy de outra conta, secret apagado no dashboard). Repor com
+o comando acima. O painel fechar sozinho nesse caso é de propósito.
+
+**Se o painel abrir sem pedir senha**, algo muito errado: conferir em
+Workers & Pages → `eme-praia-painel` → Settings → Variables que `SENHA_PAINEL`
+está como **Secret**, não como texto, e que ninguém subiu um `.dev.vars` junto
+no deploy.
+
+**Mandar a senha pra Mayara** por mensagem direta, nunca em grupo. Se cair em
+grupo ou print, trocar na hora — é um comando.
 ```
 
 Na seção **Verificações que valem repetir**, adicionar depois do comando da loja:
@@ -1295,28 +1616,24 @@ Na seção **Verificações que valem repetir**, adicionar depois do comando da 
 cd painel && npm test
 ```
 
-e na lista, o item:
+e na lista, os itens:
 
 ```markdown
 - Toque no painel aparece no site em até 30 s sem rebuild (o HTML do build
   pode dizer "disponível"; o navegador corrige)
+- `PATCH` na API do painel sem estar logado responde 401 e não muda o banco
 ```
 
-- [ ] **Step 6: Stack**
+- [ ] **Step 7: Stack**
 
-Em `docs/stack.md`, na tabela **Cloudflare**, trocar a linha do Access por:
-
-```
-| **Cloudflare Access** | — | Login do painel por código no e-mail. Ligado por Worker ("Protect this Worker behind Access"), sem domínio próprio. O Worker lê quem logou em `ctx.access.getIdentity()`. Nenhuma linha de autenticação escrita à mão. |
-```
-
-e adicionar:
+Em `docs/stack.md`, na tabela **Cloudflare**, **remover** a linha do Cloudflare Access (ele não é mais usado; a decisão 11 explica por quê) e adicionar:
 
 ```
 | **@hono/zod-validator** | 0.9.1 | Valida o corpo dos `PATCH` do painel com Zod antes da rota rodar. Corpo errado vira 400 sem tocar no banco. |
+| **Secrets do Worker** | — | `SENHA_PAINEL`, posta com `wrangler secret put`. Login do painel: senha conferida no servidor e cookie assinado por HMAC com a própria senha (`crypto.subtle`, sem dependência). Nenhuma tabela de sessão. |
 ```
 
-- [ ] **Step 7: Decisões**
+- [ ] **Step 8: Decisões**
 
 Em `docs/decisoes.md`, na decisão 3, adicionar depois da tabela:
 
@@ -1329,11 +1646,11 @@ Mayara também precisa aparecer sem rebuild. No site,
 estado do build (`lib/jsonld.tsx`).
 ```
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add README.md docs/
-git commit -m "docs: Fase 2 concluida — Access no painel, overlay de disponibilidade, runbook
+git commit -m "docs: Fase 2 concluida — login por senha, overlay de disponibilidade, runbook
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -1343,8 +1660,9 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ## Verificação final da Fase 2 (controller, antes de mesclar em `main`)
 
 1. `cd loja && npm test && npm run test:worker && npm run build` e `cd painel && npm test` passam.
-2. Painel sem login redireciona pro Access; e-mail fora da política é recusado; Mayara entrou do celular dela.
+2. Painel sem cookie redireciona pro login; senha errada é recusada; senha certa entra e o celular não pede de novo. Mayara entrou do celular dela.
 3. Toque num tamanho muda na hora, recarregar mantém, a loja mostra riscado em até 30 s. Chave kids desligada some com a fileira "Linha kids" em até 30 s.
-4. Com o Access desligado no dashboard (testar e religar), o painel responde 403.
-5. `painel/.dev.vars` não está no git; `SEM_ACCESS` não existe nas variáveis do Worker em produção.
-6. `git log --format=%ae` da branch só tem `cauefranco01@gmail.com`; nenhum commit contém emoji.
+4. `PATCH` direto na API, sem cookie, responde 401 e não muda o banco.
+5. Sem o secret, o painel responde 503 — fecha em vez de abrir.
+6. `painel/.dev.vars` não está no git; `git log -p` da branch não contém a senha de produção em lugar nenhum; `SENHA_PAINEL` aparece como **Secret** no dashboard.
+7. `git log --format=%ae` da branch só tem `cauefranco01@gmail.com`; nenhum commit contém emoji.
