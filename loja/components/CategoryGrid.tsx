@@ -8,7 +8,7 @@ export default async function CategoryGrid() {
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-12">
-      {/* numero de colunas segue as categorias em data/categorias.ts, ajustar a mao se mudar */}
+      {/* numero de colunas segue a quantidade de categorias que a API devolve, ajustar a mao se mudar */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {categorias.map((categoria) => (
           <Link

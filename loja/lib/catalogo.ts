@@ -51,19 +51,26 @@ export async function carregarCatalogo(
   }
   const bruto = CatalogoSchema.parse(await resposta.json())
 
-  const categorias = validos(bruto.categorias, CategoriaSchema, 'categoria')
+  // A API ja devolve so ativos, mas a fronteira nao confia nisso: categoria
+  // inativa some, e produto de categoria inativa some junto. Senao a vitrine
+  // mostraria peca cuja categoria nao existe mais no site.
+  const categorias = ativos(validos(bruto.categorias, CategoriaSchema, 'categoria'))
   const slugsDeCategoria = new Set(categorias.map((c) => c.slug))
-  const produtos = validos(bruto.produtos, ProdutoSchema, 'produto').filter((p) => {
-    if (slugsDeCategoria.has(p.categoria)) return true
-    console.warn(`catalogo: produto pulado (${p.slug}): categoria "${p.categoria}" nao existe`)
-    return false
-  })
+  const produtos = ativos(
+    validos(bruto.produtos, ProdutoSchema, 'produto').filter((p) => {
+      if (slugsDeCategoria.has(p.categoria)) return true
+      console.warn(`catalogo: produto pulado (${p.slug}): categoria "${p.categoria}" nao existe ou esta inativa`)
+      return false
+    }),
+  )
 
+  // Depois do filtro de ativos, de proposito: um catalogo so com produto
+  // arquivado tambem e loja vazia.
   if (produtos.length === 0) {
     throw new Error('catalogo: zero produtos validos. Build abortado pra nao publicar loja vazia.')
   }
 
-  return { categorias: ativos(categorias), produtos: ativos(produtos) }
+  return { categorias, produtos }
 }
 
 // Uma leitura por build. O Next chama getProdutos() dezenas de vezes

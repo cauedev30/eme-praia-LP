@@ -87,14 +87,30 @@ describe('carregarCatalogo', () => {
     expect(aviso).toHaveBeenCalledWith(expect.stringContaining('quebrado'), expect.anything())
   })
 
-  it('pula produto cuja categoria nao veio', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  it('pula produto cuja categoria nao veio, com aviso', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const corpo = {
       categorias: [categoriaValida],
       produtos: [{ ...base, id: 'orfao', slug: 'orfao', categoria: 'chapeus' }, { ...base, id: 'ok', slug: 'ok' }],
     }
     const { produtos } = await carregarCatalogo(fetchQueResponde(200, corpo), 'http://api')
     expect(produtos.map((p) => p.slug)).toEqual(['ok'])
+    expect(aviso).toHaveBeenCalledWith(expect.stringContaining('orfao'))
+  })
+
+  it('pula produto de categoria inativa', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const corpo = {
+      categorias: [categoriaValida, { ...categoriaValida, id: 'maio', slug: 'maio', ordem: 2, ativo: false }],
+      produtos: [{ ...base, id: 'm', slug: 'm', categoria: 'maio' }, { ...base, id: 'ok', slug: 'ok' }],
+    }
+    const { produtos } = await carregarCatalogo(fetchQueResponde(200, corpo), 'http://api')
+    expect(produtos.map((p) => p.slug)).toEqual(['ok'])
+  })
+
+  it('falha se so sobrar produto arquivado', async () => {
+    const corpo = { categorias: [categoriaValida], produtos: [{ ...base, ativo: false }] }
+    await expect(carregarCatalogo(fetchQueResponde(200, corpo), 'http://api')).rejects.toThrow(/zero produtos/)
   })
 
   it('filtra inativos e ordena por ordem', async () => {
