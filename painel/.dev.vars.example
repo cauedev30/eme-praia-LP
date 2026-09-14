@@ -1,0 +1,4 @@
+# Copie pra .dev.vars (ignorado pelo git) e ponha a senha do painel.
+# Em producao ela nao vem daqui: e secret, posta com
+#   npx wrangler secret put SENHA_PAINEL
+SENHA_PAINEL=troque-esta-senha

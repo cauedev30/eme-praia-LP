@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "eme-praia-painel",
-  "main": "src/index.ts",
+  "main": "src/index.tsx",
   "compatibility_date": "2026-09-01",
   // O painel e dono do schema: migrations e seed moram aqui. O Worker da
   // loja (loja/wrangler.jsonc) aponta pro MESMO database_id e so le.
