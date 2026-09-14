@@ -44,7 +44,11 @@ isolam o banco entre testes sozinhos: `loja/worker/apply-migrations.ts` faz
 painel.
 
 **Deploy.** `loja: npm run deploy` (build + deploy). Enquanto não há Workers
-Builds, é sempre da máquina do Cauê.
+Builds, é sempre da máquina do Cauê. Ordem de bootstrap num ambiente do zero:
+o build busca o catálogo no Worker que ele mesmo vai substituir. Então, na
+primeira vez, o Worker precisa existir antes do primeiro build (ver o
+histórico da Task 3 do plano da Fase 1: o primeiro deploy foi feito com o
+build ainda lendo de arquivo).
 
 ## Pendências antes do lançamento
 
@@ -86,7 +90,8 @@ Builds, é sempre da máquina do Cauê.
 ## Verificações que valem repetir a cada mudança grande
 
 ```bash
-cd loja && npm test && npm run test:worker && npm run build
+cd loja && npm test && npm run test:worker && npm run worker:typecheck && npm run build
+cd ../painel && npm run typecheck
 ```
 
 Depois, sobre `loja/out/`:
@@ -111,8 +116,8 @@ Depois, sobre `loja/out/`:
   `.env.example`.
 - **Clone novo: `npm run test:worker`, `worker:dev` ou `deploy` falham com erro
   estranho do workerd** — o npm deste projeto exige aprovar scripts de
-  pós-instalação. Rodar `npm approve-scripts --allow-scripts-pending` em
-  `loja/` e em `painel/`, depois `npm install` de novo.
+  pós-instalação. Rodar `npm approve-scripts --all` em `loja/` e em
+  `painel/`, depois `npm install` de novo.
 - **Depois de mexer no `loja/package.json`** — ele tem `"type": "module"` por
   causa dos configs do Vitest 4. Qualquer `.js` novo na raiz de `loja/` vai
   ser lido como ES module; se um arquivo de config quebrar com "require is

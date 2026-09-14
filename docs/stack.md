@@ -52,8 +52,10 @@ O projeto usa a divisão do React 18 entre dois tipos de componente:
   navegador porque precisa reagir a clique, guardar estado. Ex.: `CartProvider`,
   `ProductCard`, `CartDrawer`.
 
-Essa fronteira é onde a Fase 1 vai encaixar a busca de dados. Não é detalhe de
-estilo: é o que faz a home inteira pesar 98 KB de JavaScript.
+Foi nessa fronteira que a Fase 1 encaixou a busca de dados: só Server
+Components chamam `lib/catalogo.ts`; os Client Components recebem o produto
+pronto. Não é detalhe de estilo: é o que faz a home inteira pesar 98 KB de
+JavaScript.
 
 ### Tailwind CSS 3.4.19
 

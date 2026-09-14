@@ -168,6 +168,32 @@ descartável e fazer login num celular que não é o do Cauê. Se travar, o plan
 
 ---
 
+## 12. Laranja preenche. Terra escreve.
+
+A paleta saiu do selo — laranja de fundo, grafite recortado por dentro. Só que
+o laranja da marca (`#FB7F20`) dá **2,5:1** sobre fundo claro: como texto ele
+some. Então existem duas laranjas e cada uma tem um lugar fixo:
+
+| | Onde | Contraste |
+|---|---|---|
+| `laranja` `#FB7F20` | preenchimento: CTA, sacola, badge — e como texto **só** em fundo escuro | 4,98:1 sobre grafite · 6,40:1 sobre breu |
+| `terra` `#B35207` | a única laranja que vira tinta em fundo claro | 4,88:1 sobre gelo |
+
+**Por quê.** A paleta anterior era a da i love bikini (creme/areia/bronze):
+bege sobre bege, o bronze do botão dava 2,92:1 com o texto por cima. Trocar
+bronze por laranja um-por-um resolveria o contraste e criaria outro problema —
+o botão "Adicionar à sacola" se repete 8 vezes por tela na grade, e oito barras
+laranja abafam a foto do produto, que é o que precisa gritar numa loja. Por
+isso o botão do card é contorno de grafite e só preenche laranja no hover.
+
+**O custo.** Duas laranjas na paleta em vez de uma, e alguém pode usar a errada.
+É o preço de ter uma marca de cor forte e um site de fundo claro.
+
+**Hover é o selo invertido:** laranja/grafite troca pra grafite/laranja. Mesmo
+contraste nos dois estados (4,98:1), e não precisa de uma terceira laranja.
+
+---
+
 ## 13. Dois Workers, um banco.
 
 `eme-praia` (em `loja/`) serve o site e a API de leitura. `eme-praia-painel`
@@ -221,32 +247,6 @@ categoria está sem imagem.
 **Por quê.** Não é só marcação de pendência. Na Fase 3 a Mayara vai cadastrar
 peça e subir a foto depois; o site precisa saber desenhar o vazio em vez de
 mostrar ícone de imagem quebrada.
-
----
-
-## 12. Laranja preenche. Terra escreve.
-
-A paleta saiu do selo — laranja de fundo, grafite recortado por dentro. Só que
-o laranja da marca (`#FB7F20`) dá **2,5:1** sobre fundo claro: como texto ele
-some. Então existem duas laranjas e cada uma tem um lugar fixo:
-
-| | Onde | Contraste |
-|---|---|---|
-| `laranja` `#FB7F20` | preenchimento: CTA, sacola, badge — e como texto **só** em fundo escuro | 4,98:1 sobre grafite · 6,40:1 sobre breu |
-| `terra` `#B35207` | a única laranja que vira tinta em fundo claro | 4,88:1 sobre gelo |
-
-**Por quê.** A paleta anterior era a da i love bikini (creme/areia/bronze):
-bege sobre bege, o bronze do botão dava 2,92:1 com o texto por cima. Trocar
-bronze por laranja um-por-um resolveria o contraste e criaria outro problema —
-o botão "Adicionar à sacola" se repete 8 vezes por tela na grade, e oito barras
-laranja abafam a foto do produto, que é o que precisa gritar numa loja. Por
-isso o botão do card é contorno de grafite e só preenche laranja no hover.
-
-**O custo.** Duas laranjas na paleta em vez de uma, e alguém pode usar a errada.
-É o preço de ter uma marca de cor forte e um site de fundo claro.
-
-**Hover é o selo invertido:** laranja/grafite troca pra grafite/laranja. Mesmo
-contraste nos dois estados (4,98:1), e não precisa de uma terceira laranja.
 
 ---
 
