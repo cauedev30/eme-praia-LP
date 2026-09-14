@@ -8,10 +8,16 @@ import type { Env, Variaveis } from './login'
 
 export const api = new Hono<{ Bindings: Env; Variables: Variaveis }>()
 
-const CorpoDisponivel = z.object({ disponivel: z.boolean() })
-const CorpoKids = z.object({ temKids: z.boolean() })
+// strict(): campo a mais vira 400 em vez de ser ignorado em silencio. Um
+// erro de digitacao no script do painel aparece, em vez de virar toque que
+// nao faz nada.
+const CorpoDisponivel = z.object({ disponivel: z.boolean() }).strict()
+const CorpoKids = z.object({ temKids: z.boolean() }).strict()
 
-const SQL_TOCAR_PRODUTO = `UPDATE produtos SET atualizado_em = datetime('now') WHERE id = ?`
+// O EXISTS evita marcar o produto como atualizado quando o tamanho pedido
+// nao existe: sem ele, um 404 ainda deixava rastro no atualizado_em.
+const SQL_TOCAR_PRODUTO = `UPDATE produtos SET atualizado_em = datetime('now')
+   WHERE id = ?1 AND EXISTS (SELECT 1 FROM tamanhos WHERE produto_id = ?1 AND tamanho = ?2)`
 
 api.patch('/produtos/:id/tamanhos/:tamanho', zValidator('json', CorpoDisponivel), async (c) => {
   const { id, tamanho } = c.req.param()
@@ -23,7 +29,7 @@ api.patch('/produtos/:id/tamanhos/:tamanho', zValidator('json', CorpoDisponivel)
       id,
       tamanho,
     ),
-    c.env.DB.prepare(SQL_TOCAR_PRODUTO).bind(id),
+    c.env.DB.prepare(SQL_TOCAR_PRODUTO).bind(id, tamanho),
   ])
 
   if (resultado.meta.changes === 0) return c.json({ erro: 'tamanho nao encontrado' }, 404)

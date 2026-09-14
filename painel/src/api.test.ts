@@ -44,14 +44,25 @@ describe('PATCH /api/produtos/:id/tamanhos/:tamanho', () => {
     expect(linha?.atualizado_em).not.toBe('2000-01-01 00:00:00')
   })
 
-  it('404 em tamanho que o produto nao tem', async () => {
+  // Conferir o corpo, nao so o status: o Hono devolve 404 pra qualquer
+  // caminho sem rota, entao um teste que so olha o status continuaria verde
+  // com a API inteira desmontada.
+  it('404 em tamanho que o produto nao tem, e sem marcar o produto', async () => {
+    await env.DB.prepare(`UPDATE produtos SET atualizado_em = '2000-01-01 00:00:00' WHERE id = 'top-tanga-sand'`).run()
+
     const r = await patch('/api/produtos/top-tanga-sand/tamanhos/XG', { disponivel: false })
     expect(r.status).toBe(404)
+    expect(await r.json()).toEqual({ erro: 'tamanho nao encontrado' })
+
+    // 404 nao pode deixar rastro: o produto existe, o tamanho nao.
+    const linha = await env.DB.prepare(`SELECT atualizado_em FROM produtos WHERE id = 'top-tanga-sand'`).first<{ atualizado_em: string }>()
+    expect(linha?.atualizado_em).toBe('2000-01-01 00:00:00')
   })
 
   it('404 em produto inexistente', async () => {
     const r = await patch('/api/produtos/nao-existe/tamanhos/M', { disponivel: false })
     expect(r.status).toBe(404)
+    expect(await r.json()).toEqual({ erro: 'tamanho nao encontrado' })
   })
 
   it('400 em corpo invalido', async () => {
@@ -93,8 +104,22 @@ describe('PATCH /api/produtos/:id', () => {
     expect(linha?.tem_kids).toBe(0)
   })
 
+  it('atualiza atualizado_em do produto', async () => {
+    await env.DB.prepare(`UPDATE produtos SET atualizado_em = '2000-01-01 00:00:00' WHERE id = 'top-tanga-sand'`).run()
+    await patch('/api/produtos/top-tanga-sand', { temKids: false })
+    const linha = await env.DB.prepare(`SELECT atualizado_em FROM produtos WHERE id = 'top-tanga-sand'`).first<{ atualizado_em: string }>()
+    expect(linha?.atualizado_em).not.toBe('2000-01-01 00:00:00')
+  })
+
   it('404 em produto inexistente', async () => {
-    expect((await patch('/api/produtos/nao-existe', { temKids: true })).status).toBe(404)
+    const r = await patch('/api/produtos/nao-existe', { temKids: true })
+    expect(r.status).toBe(404)
+    expect(await r.json()).toEqual({ erro: 'produto nao encontrado' })
+  })
+
+  it('400 em campo a mais: erro de digitacao nao vira toque silencioso', async () => {
+    const r = await patch('/api/produtos/top-tanga-sand', { temKids: false, disponivel: true })
+    expect(r.status).toBe(400)
   })
 
   it('400 em corpo invalido', async () => {
