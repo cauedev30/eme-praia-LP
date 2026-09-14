@@ -66,8 +66,22 @@ describe('criarCookie / cookieVale', () => {
   })
 
   it('lixo e ausencia sao recusados sem explodir', async () => {
-    for (const lixo of [undefined, '', '.', 'abc', 'abc.def', '123.', `${Date.now()}`]) {
+    for (const lixo of [
+      undefined,
+      '',
+      '.',
+      'abc',
+      'abc.def',
+      '123.',
+      `${Date.now()}`,
+      `${Math.floor(Date.now() / 1000) + 3600}.${'é'.repeat(43)}`,
+    ]) {
       expect(await cookieVale(lixo, SENHA)).toBe(false)
     }
+  })
+
+  it('sem senha, falha alto em vez de assinar com vazio', async () => {
+    await expect(criarCookie('')).rejects.toThrow('senha ausente')
+    await expect(senhaConfere('qualquer', '')).rejects.toThrow('senha ausente')
   })
 })

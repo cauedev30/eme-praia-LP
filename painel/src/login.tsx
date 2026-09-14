@@ -15,16 +15,24 @@ export type Env = {
 
 export type Variaveis = { senha: string }
 
-// Espera antes de responder senha errada. E freio contra chute em massa, nao
-// tranca: o que segura de verdade e o tamanho da senha.
+// Espera antes de responder senha errada. Atrapalha chute manual e nada
+// mais: quem abrir varias conexoes em paralelo nao e afetado, porque nao
+// existe contador nem bloqueio. Limitar de verdade e regra de WAF em
+// POST /entrar (anotado no runbook). O que segura hoje e o tamanho da senha.
 const ESPERA_ERRO_MS = 500
 
 const espera = (ms: number) => new Promise((pronto) => setTimeout(pronto, ms))
 
+function ehLocal(url: string): boolean {
+  const { hostname } = new URL(url)
+  return hostname === 'localhost' || hostname === '127.0.0.1'
+}
+
 export const exigirSenha: MiddlewareHandler<{ Bindings: Env; Variables: Variaveis }> = async (c, next) => {
   const senha = c.env.SENHA_PAINEL
-  // Falta de configuracao fecha o painel; nao escancara.
-  if (!senha) return c.text('Painel sem senha configurada. Ver docs/runbook-caue.md.', 503)
+  // Ponteiro pro runbook fica no comentario, nao na resposta: quem precisa
+  // dele esta lendo o codigo. Ver docs/runbook-caue.md, secao da senha.
+  if (!senha) return c.text('Painel indisponivel.', 503)
 
   c.set('senha', senha)
   if (c.req.path === '/entrar') return next()
@@ -97,9 +105,9 @@ login.post('/entrar', async (c) => {
     sameSite: 'Lax',
     path: '/',
     maxAge: DURACAO_SEGUNDOS,
-    // Com Secure ligado o cookie nao gruda em http://localhost em alguns
-    // navegadores. Em producao o Worker so atende https, entao la ele entra.
-    secure: new URL(c.req.url).protocol === 'https:',
+    // Preso ao host, nao ao esquema: se alguem abrir o painel por http://
+    // em producao, o cookie ainda sai Secure e nao volta em texto claro.
+    secure: !ehLocal(c.req.url),
   })
   return c.redirect('/', 302)
 })

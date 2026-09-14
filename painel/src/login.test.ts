@@ -40,6 +40,12 @@ describe('exigirSenha', () => {
       expect(r.status).toBe(503)
     }
   })
+
+  it('rota sem handler tambem e barrada: a barreira e o catch-all, nao a rota', async () => {
+    const r = await app.request('/estoque', {}, ambiente())
+    expect(r.status).toBe(302)
+    expect(r.headers.get('location')).toBe('/entrar')
+  })
 })
 
 describe('GET /entrar', () => {
@@ -72,6 +78,7 @@ describe('POST /entrar', () => {
     expect(cookie).toContain('HttpOnly')
     expect(cookie).toContain('SameSite=Lax')
     expect(cookie).toContain('Max-Age=7776000')
+    expect(cookie).toContain('Path=/')
   })
 
   it('o cookie que ela recebe abre o painel', async () => {
@@ -105,11 +112,14 @@ describe('POST /entrar', () => {
     expect(html).not.toContain('nao e a senha')
   })
 
-  it('Secure so em https, pra nao quebrar o dev em localhost', async () => {
+  it('Secure fora de localhost, pra nao quebrar o dev local', async () => {
     const seguro = await app.request('https://painel.test/entrar', form(SENHA_TESTE), ambiente())
     expect(seguro.headers.get('set-cookie')).toContain('Secure')
 
     const local = await app.request('http://localhost:8787/entrar', form(SENHA_TESTE), ambiente())
     expect(local.headers.get('set-cookie')).not.toContain('Secure')
+
+    const httpRemoto = await app.request('http://eme-praia-painel.workers.dev/entrar', form(SENHA_TESTE), ambiente())
+    expect(httpRemoto.headers.get('set-cookie')).toContain('Secure')
   })
 })
