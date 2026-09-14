@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
-import { lerCatalogo } from './consultas'
+import { lerCatalogo, lerDisponibilidade } from './consultas'
 
 describe('lerCatalogo', () => {
   it('devolve categorias e produtos ativos, ordenados, no formato de tipos.ts', async () => {
@@ -65,5 +65,20 @@ describe('lerCatalogo', () => {
     await env.DB.prepare(`UPDATE produtos SET imagens = '"x"' WHERE id = 'top-tanga-sand'`).run()
     const { produtos } = await lerCatalogo(env.DB)
     expect(produtos[0].imagens).toEqual([])
+  })
+})
+
+describe('lerDisponibilidade', () => {
+  it('mapa por slug com tamanhos e temKids, so ativos', async () => {
+    await env.DB.prepare(`UPDATE tamanhos SET disponivel = 0 WHERE produto_id = 'top-tanga-sand' AND tamanho = 'M'`).run()
+    await env.DB.prepare(`UPDATE produtos SET tem_kids = 0 WHERE id = 'top-triangulo-oceano'`).run()
+    await env.DB.prepare(`UPDATE produtos SET ativo = 0 WHERE id = 'top-cortininha-terracota'`).run()
+
+    const mapa = await lerDisponibilidade(env.DB)
+
+    expect(mapa['top-tanga-sand']).toEqual({ temKids: true, tamanhos: { P: true, M: false, G: true, GG: true } })
+    expect(mapa['top-triangulo-oceano'].temKids).toBe(false)
+    expect(mapa['top-cortininha-terracota']).toBeUndefined()
+    expect(Object.keys(mapa)).toHaveLength(16)
   })
 })

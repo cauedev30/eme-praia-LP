@@ -40,3 +40,13 @@ describe('GET /api/catalogo.json', () => {
     espiao.mockRestore()
   })
 })
+
+describe('GET /api/disponibilidade.json', () => {
+  it('devolve o mapa com 30 s de cache', async () => {
+    const r = await exports.default.fetch('https://eme-praia.test/api/disponibilidade.json')
+    expect(r.status).toBe(200)
+    expect(r.headers.get('cache-control')).toBe('public, max-age=30, s-maxage=30')
+    const mapa = (await r.json()) as Record<string, unknown>
+    expect(Object.keys(mapa)).toHaveLength(17)
+  })
+})

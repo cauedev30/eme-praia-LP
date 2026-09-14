@@ -1,4 +1,4 @@
-import type { Categoria, Produto, Tamanho } from '../lib/tipos'
+import type { Categoria, MapaDisponibilidade, Produto, Tamanho } from '../lib/tipos'
 
 // Leitura do catalogo no D1, no formato exato de lib/tipos.ts. E o unico
 // lugar do Worker da loja que fala SQL. Nada aqui escreve.
@@ -103,4 +103,18 @@ export async function lerCatalogo(db: D1Database): Promise<{ categorias: Categor
   }))
 
   return { categorias, produtos }
+}
+
+// O que o site busca em runtime. Deriva de lerCatalogo pra que as duas
+// leituras nunca discordem sobre o que e "ativo".
+export async function lerDisponibilidade(db: D1Database): Promise<MapaDisponibilidade> {
+  const { produtos } = await lerCatalogo(db)
+  const mapa: MapaDisponibilidade = {}
+  for (const p of produtos) {
+    mapa[p.slug] = {
+      temKids: p.temKids,
+      tamanhos: Object.fromEntries(p.tamanhos.map((t) => [t.tamanho, t.disponivel])),
+    }
+  }
+  return mapa
 }

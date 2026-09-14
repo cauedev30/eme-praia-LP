@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { lerCatalogo } from './consultas'
+import { lerCatalogo, lerDisponibilidade } from './consultas'
 
 // Worker da loja: serve loja/out como assets (configurado em wrangler.jsonc,
 // antes deste codigo rodar) e a API de LEITURA do catalogo. Nada aqui
@@ -17,6 +17,14 @@ const app = new Hono<{ Bindings: Env }>()
 app.get('/api/catalogo.json', async (c) => {
   const catalogo = await lerCatalogo(c.env.DB)
   return c.json(catalogo, 200, { 'Cache-Control': 'no-store' })
+})
+
+// Consumida pelo navegador em toda carga de pagina (DisponibilidadeProvider).
+// 30 s de cache na borda e no navegador: e o "reflete em ate 30 s" da
+// decisao 3, e o que impede um dia de praia de virar milhares de SELECTs.
+app.get('/api/disponibilidade.json', async (c) => {
+  const mapa = await lerDisponibilidade(c.env.DB)
+  return c.json(mapa, 200, { 'Cache-Control': 'public, max-age=30, s-maxage=30' })
 })
 
 app.onError((erro, c) => {

@@ -42,3 +42,15 @@ export type Categoria = {
   ordem: number
   ativo: boolean
 }
+
+/** O que muda varias vezes por dia e o site busca em runtime
+ *  (GET /api/disponibilidade.json, decisao 3). Chave: slug do produto.
+ *  So produtos ativos. Carrega temKids porque a chave da Mayara tambem
+ *  precisa aparecer sem rebuild. */
+export type MapaDisponibilidade = Record<
+  string,
+  {
+    temKids: boolean
+    tamanhos: Record<string, boolean>
+  }
+>
