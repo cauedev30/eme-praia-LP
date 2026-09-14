@@ -1,19 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Produto } from '@/lib/tipos'
 import { formatarCentavos, parcelamento } from '@/lib/preco'
 import { temEstoque } from '@/lib/estoque'
 import { rotuloKids, selecaoInicial, tamanhosKids, temVariante } from '@/lib/variantes'
 import { useSacola } from '@/components/CartProvider'
+import { useProdutoAoVivo } from '@/components/DisponibilidadeProvider'
 import BackButton from '@/components/BackButton'
 import ImagemSlot from '@/components/ImagemSlot'
 
-export default function ProductDetail({ produto }: { produto: Produto }) {
+export default function ProductDetail({ produto: doBuild }: { produto: Produto }) {
+  const produto = useProdutoAoVivo(doBuild)
   // Uma selecao so: 'M' ou 'Kids 6'. Clicar num desmarca o outro.
   const [tamanhoSelecionado, setTamanhoSelecionado] = useState(selecaoInicial(produto))
   const [quantidade, setQuantidade] = useState(1)
   const { adicionar } = useSacola()
+
+  // O mapa chega depois do primeiro render. Se o tamanho ja selecionado
+  // ficou esgotado, ou o kids selecionado deixou de existir, refaz a
+  // selecao inicial em vez de deixar a cliente com um botao morto marcado.
+  useEffect(() => {
+    if (!tamanhoSelecionado) return
+    const adulto = produto.tamanhos.find((t) => t.tamanho === tamanhoSelecionado)
+    const kidsSumiu = tamanhoSelecionado.startsWith('Kids ') && !produto.temKids
+    if ((adulto && !adulto.disponivel) || kidsSumiu) setTamanhoSelecionado(selecaoInicial(produto))
+  }, [produto, tamanhoSelecionado])
 
   const temGrade = produto.tamanhos.length > 0
   const kids = tamanhosKids(produto)

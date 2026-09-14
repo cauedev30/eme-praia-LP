@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import CartProvider from '@/components/CartProvider'
 import CartDrawer from '@/components/CartDrawer'
 import CartBar from '@/components/CartBar'
+import DisponibilidadeProvider from '@/components/DisponibilidadeProvider'
 import { jsonLdLoja, ScriptJsonLd } from '@/lib/jsonld'
 import { loja } from '@/loja.config'
 
@@ -29,11 +30,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${fraunces.variable} ${jost.variable} font-sans bg-gelo text-grafite`}>
         <ScriptJsonLd dados={jsonLdLoja()} />
         <CartProvider>
-          <Header />
-          {children}
-          <Footer />
-          <CartBar />
-          <CartDrawer />
+          <DisponibilidadeProvider>
+            <Header />
+            {children}
+            <Footer />
+            <CartBar />
+            <CartDrawer />
+          </DisponibilidadeProvider>
         </CartProvider>
       </body>
     </html>

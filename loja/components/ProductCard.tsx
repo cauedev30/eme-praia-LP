@@ -7,9 +7,13 @@ import { formatarCentavos } from '@/lib/preco'
 import { temEstoque } from '@/lib/estoque'
 import { rotuloKids, tamanhosKids, temVariante } from '@/lib/variantes'
 import { useSacola } from '@/components/CartProvider'
+import { useProdutoAoVivo } from '@/components/DisponibilidadeProvider'
 import ImagemSlot from '@/components/ImagemSlot'
 
-export default function ProductCard({ produto }: { produto: Produto }) {
+export default function ProductCard({ produto: doBuild }: { produto: Produto }) {
+  // Tamanhos e temKids corrigidos pelo /api/disponibilidade.json. Tudo
+  // abaixo (botoes, selo Esgotado, fileira kids) le deste `produto`.
+  const produto = useProdutoAoVivo(doBuild)
   const { adicionar } = useSacola()
   const [escolhendoTamanho, setEscolhendoTamanho] = useState(false)
 
