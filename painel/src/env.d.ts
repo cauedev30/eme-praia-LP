@@ -6,6 +6,7 @@ declare global {
   namespace Cloudflare {
     interface Env extends EnvDoLogin {
       TEST_MIGRATIONS: import('cloudflare:test').D1Migration[]
+
     }
   }
 }

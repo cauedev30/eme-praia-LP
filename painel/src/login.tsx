@@ -11,6 +11,9 @@ export type Env = {
   DB: D1Database
   /** Secret em producao, .dev.vars no local. Sem ela o painel recusa tudo. */
   SENHA_PAINEL?: string
+  /** Endereco do Worker da loja, de onde vem as fotos. Em wrangler.jsonc.
+   *  Quando o dominio da Mayara existir, muda so ali. */
+  URL_LOJA?: string
 }
 
 export type Variaveis = { senha: string }

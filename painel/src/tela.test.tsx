@@ -50,6 +50,49 @@ describe('GET /', () => {
     expect(html).toContain('<h2>Biquínis</h2>')
   })
 
+  it('produto sem foto mostra o slot, nao um img quebrado', async () => {
+    const html = await (await abrirPainel()).text()
+    expect(html).toContain('class="foto vazia"')
+    expect(html).not.toContain('<img')
+  })
+
+  it('produto com foto mostra a foto, com o endereco da loja na frente', async () => {
+    await env.DB.prepare(
+      `UPDATE produtos SET imagens = '["/produtos/sand.webp"]' WHERE id = 'top-tanga-sand'`,
+    ).run()
+
+    const r = await app.request(
+      '/',
+      { headers: await comSessao() },
+      { ...ambiente(), URL_LOJA: 'https://eme-praia.exemplo' },
+    )
+    const html = await r.text()
+    expect(html).toContain('src="https://eme-praia.exemplo/produtos/sand.webp"')
+  })
+
+  it('sem URL_LOJA, cai no slot em vez de pedir um caminho que nao resolve', async () => {
+    await env.DB.prepare(
+      `UPDATE produtos SET imagens = '["/produtos/sand.webp"]' WHERE id = 'top-tanga-sand'`,
+    ).run()
+
+    const html = await (await abrirPainel()).text()
+    expect(html).not.toContain('<img')
+    expect(html).toContain('class="foto vazia"')
+  })
+
+  it('endereco absoluto no banco passa direto, sem prefixo duplicado', async () => {
+    await env.DB.prepare(
+      `UPDATE produtos SET imagens = '["https://cdn.exemplo/sand.webp"]' WHERE id = 'top-tanga-sand'`,
+    ).run()
+
+    const r = await app.request(
+      '/',
+      { headers: await comSessao() },
+      { ...ambiente(), URL_LOJA: 'https://eme-praia.exemplo' },
+    )
+    expect(await r.text()).toContain('src="https://cdn.exemplo/sand.webp"')
+  })
+
   it('escapa HTML no nome do produto', async () => {
     await env.DB.prepare(`UPDATE produtos SET nome = 'Top <b>x</b>' WHERE id = 'top-tanga-sand'`).run()
     const html = await (await abrirPainel()).text()

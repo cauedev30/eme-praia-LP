@@ -18,7 +18,7 @@ app.route('/api', api)
 
 app.get('/', async (c) => {
   const { categorias, produtos } = await lerCatalogo(c.env.DB)
-  return c.html(<Tela categorias={categorias} produtos={produtos} />)
+  return c.html(<Tela categorias={categorias} produtos={produtos} urlLoja={c.env.URL_LOJA ?? ''} />)
 })
 
 // Sem isto o Hono responde "Internal Server Error" e nao escreve nada: o

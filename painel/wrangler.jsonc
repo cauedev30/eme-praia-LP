@@ -7,6 +7,9 @@
   // arquivo fica fora do login. E por isso que ele nao tem segredo nenhum:
   // so liga toque em fetch. Quem protege os dados e o middleware nas rotas.
   "assets": { "directory": "./public" },
+  // De onde vem as fotos: elas sao servidas pelo Worker da loja, que e outra
+  // origem. Quando o dominio da Mayara existir, troca aqui e faz deploy.
+  "vars": { "URL_LOJA": "https://eme-praia.pedidos-jp.workers.dev" },
   // O painel e dono do schema: migrations e seed moram aqui. O Worker da
   // loja (loja/wrangler.jsonc) aponta pro MESMO database_id e so le.
   "d1_databases": [
