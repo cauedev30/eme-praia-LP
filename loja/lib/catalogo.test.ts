@@ -103,6 +103,15 @@ describe('carregarCatalogo', () => {
   it('aceita API_URL com barra no fim', async () => {
     const f = fetchQueResponde(200, { categorias: [categoriaValida], produtos: [base] })
     await carregarCatalogo(f, 'http://api/')
-    expect(f).toHaveBeenCalledWith('http://api/api/catalogo.json')
+    expect(f).toHaveBeenCalledWith('http://api/api/catalogo.json', { cache: 'no-store' })
+  })
+
+  // Sem no-store o Next guarda a resposta em .next/cache/fetch-cache e o
+  // build seguinte reconstroi o site com o catalogo velho. Ja aconteceu:
+  // imagem de categoria gravada no D1 e build saindo sem ela.
+  it('pede sem cache: build tem que ver o banco de agora', async () => {
+    const f = fetchQueResponde(200, { categorias: [categoriaValida], produtos: [base] })
+    await carregarCatalogo(f, 'http://api')
+    expect(f).toHaveBeenCalledWith(expect.any(String), { cache: 'no-store' })
   })
 })

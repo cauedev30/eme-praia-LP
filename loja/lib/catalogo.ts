@@ -46,7 +46,13 @@ export async function carregarCatalogo(
     )
   }
   const endereco = `${url.replace(/\/$/, '')}/api/catalogo.json`
-  const resposta = await fetchImpl(endereco)
+  // no-store nao e enfeite: sem ele o Next guarda a resposta em
+  // .next/cache/fetch-cache e um `npm run build` seguinte reconstroi o site
+  // com o catalogo velho, mesmo com o banco ja atualizado. Aconteceu de
+  // verdade — foto de categoria gravada no D1 e build saindo sem ela. O
+  // memo em `emMemoria` ja garante uma chamada so por build; o cache entre
+  // builds e justamente o que nao pode existir.
+  const resposta = await fetchImpl(endereco, { cache: 'no-store' })
   if (resposta.status !== 200) {
     throw new Error(`catalogo: a API respondeu ${resposta.status} em ${endereco}. Build abortado.`)
   }

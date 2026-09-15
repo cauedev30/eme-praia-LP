@@ -12,7 +12,7 @@ export default async function Header() {
     <header className="border-b border-grafite/10 bg-gelo">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 md:py-4">
         <Link href="/" className="flex items-center">
-          <img src="/logo/eme-logo.webp" alt={loja.nome} width={1007} height={1007} className="h-20 w-auto md:h-28" />
+          <img src="/logo/eme-logo.webp" alt={loja.nome} width={500} height={500} className="h-20 w-auto md:h-28" />
         </Link>
         <nav className="hidden gap-6 text-sm uppercase tracking-wide text-grafite md:flex">
           <Link href="/#promocao" className="hover:text-terra">

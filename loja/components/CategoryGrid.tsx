@@ -27,9 +27,13 @@ export default async function CategoryGrid() {
             ) : (
               <ImagemSlot />
             )}
+            {/* Degradê só no pé, não um véu por cima da foto inteira: a foto
+                de biquíni termina em areia clara e a de maiô em madeira, e
+                texto branco com 20% de preto por cima sumia nas duas. Assim
+                a foto continua limpa em cima e a legenda fica legível. */}
             <div
               className={`absolute inset-0 flex items-end justify-center pb-6 ${
-                categoria.imagem ? 'bg-black/20' : ''
+                categoria.imagem ? 'bg-gradient-to-t from-black/65 via-black/15 to-transparent' : ''
               }`}
             >
               <span
