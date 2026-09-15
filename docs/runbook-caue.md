@@ -27,13 +27,47 @@ teste.
 celular de verdade, nem mediu se os alvos de toque ficaram em 44 px. Fazer
 isso antes de contar pra Mayara que o toque é confiável no celular dela.
 
-**Limite que fica, e é de propósito:** o botão do tamanho esgotado continua
-clicável por uns bons cem milissegundos, até o fetch de disponibilidade
-responder — e o checkout é mensagem de WhatsApp, sem checagem nenhuma no
-servidor. O overlay reduz pedido de tamanho errado, não elimina.
+**Limite que fica, e é de propósito.** O overlay reduz pedido de tamanho
+errado, não elimina. São dois buracos, de tamanhos bem diferentes:
+
+- **O pequeno.** O botão do tamanho esgotado continua clicável por uns bons
+  cem milissegundos, até o fetch de disponibilidade responder.
+- **O grande, e é a sacola.** Ela vive no `localStorage` (`eme-sacola`) e
+  **nunca** consulta disponibilidade: só `ProductCard` e `ProductDetail`
+  chamam `useProdutoAoVivo`. A cliente põe o M na terça, a Mayara marca M
+  esgotado na quarta, a cliente volta na sexta e manda o pedido do M. Não
+  tem prazo pra isso expirar, e o checkout é WhatsApp, sem checagem nenhuma
+  no servidor.
+
+Isso é anterior à Fase 2 — a sacola já era assim. Mas se a Mayara disser "o
+painel não funcionou", este é o primeiro lugar pra olhar antes de suspeitar
+do painel. Aplicar disponibilidade à sacola está na entrada da Fase 3.
 
 Próximo: Fase 3 (cadastro de produto, foto). Antes dela: habilitar R2 no
 dashboard (pede cartão) e decidir Workers Builds + deploy hook.
+
+### O que a Fase 3 tem que resolver antes de começar
+
+Coisas que a Fase 2 deixou de pé de propósito, e que **quebram no dia em que
+arquivar produto virar botão**:
+
+- [ ] **Slug fora do mapa é ambíguo.** Hoje `aoVivo` trata "não veio no mapa"
+      como "vale o build" — certo quando o fetch falhou, errado quando o
+      produto foi arquivado. Produto arquivado depois do último build vai
+      continuar com página estática mostrando tudo disponível. O provider
+      precisa separar "não carregou" de "carregou e não tem".
+- [ ] **A sacola ignora disponibilidade.** Ver "Limite que fica" acima.
+- [ ] **A chave do cache da borda não tem versão.** `loja/worker/index.ts`
+      guarda em `caches.default` com a URL crua. Se o formato do
+      `/api/disponibilidade.json` mudar, a borda serve o formato velho por
+      até 30 s depois do deploy. Pôr um `?v=2` na chave quando o formato
+      mudar.
+- [ ] **`SQL_TAMANHOS` lê tamanho de produto arquivado.** Saída certa, leitura
+      desperdiçada — e o desperdício só cresce, porque arquivar não apaga.
+- [ ] **Nenhuma rota de escrita filtra `produtos.ativo`.** Dá pra alternar
+      tamanho de produto arquivado. Decidir junto com o 404.
+- [ ] **Nada em `painel/public/` pode se chamar `index.html`.** Assets são
+      servidos antes do Worker: isso sombrearia a `/` protegida por senha.
 
 ## Os dois Workers e o banco
 
@@ -50,7 +84,14 @@ arquivos antes de qualquer `wrangler d1 create`.
 dois bancos locais. Todos os scripts passam `--persist-to ../.wrangler-state`
 pra que o D1 local seja um só. Ordem: `painel: npm run db:migrate:local`,
 depois `loja: npm run worker:dev` (porta 8787), depois `loja: npm run dev` com
-`API_URL=http://localhost:8787` no `.env.local`.
+`API_URL=http://localhost:8787` no `.env.local`. O painel roda em **8788**
+(fixado no script, senão os dois `wrangler dev` brigam pela 8787).
+
+**O painel importa de `loja/`.** `painel/src/index.tsx` puxa
+`../../loja/worker/consultas` por caminho relativo. Funciona porque o deploy
+sai de um clone do repositório inteiro. No dia de configurar Workers Builds,
+o projeto do painel **não pode** ter root directory `painel/` — ele precisa
+de `loja/` presente pra buildar.
 
 **Migration nova.** Arquivo `painel/migrations/000N_nome.sql`, aplicar local,
 rodar `npm run test:worker` na loja (os testes aplicam as migrations num D1
@@ -92,6 +133,12 @@ PBKDF2 do login estourou. Baixar `ITERACOES` em `painel/src/sessao.ts` (hoje
 5 000) resolve na hora. Assinar um plano pago da Cloudflare permite voltar a
 subir esse número depois. Contexto completo na decisão 11.
 
+**Trocar a senha ANTES de mandar pra Mayara.** A que está em produção hoje foi
+escolhida de improviso e é fraca: palavra ligada ao negócio mais sequência de
+teclado, chutável por quem sabe o nome da loja. Como não existe rate limiting
+(ver o parágrafo do WAF abaixo), o tamanho da senha é a única defesa que
+sobrou. Trocar por quatro palavras soltas. Contexto na decisão 11.
+
 **Mandar a senha pra Mayara** por mensagem direta, nunca em grupo. Se cair em
 grupo ou print, trocar na hora — é um comando.
 
@@ -104,6 +151,12 @@ não estiver, o que segura é o tamanho da senha.
 
 ## Pendências antes do lançamento
 
+- [ ] **Trocar `SENHA_PAINEL` por quatro palavras soltas antes de mandar pra
+      Mayara.** A atual é fraca de propósito conhecido (decisão 11), e sem
+      rate limiting ela é a única defesa. `cd painel && npx wrangler secret
+      put SENHA_PAINEL`. Vale na hora e desloga quem estiver logado.
+- [ ] Abrir o painel num celular de verdade e conferir os alvos de toque.
+      Ninguém viu isso renderizado ainda — só HTML por `curl`.
 - [ ] `loja.config.ts`: WhatsApp, Instagram e domínio reais da Mayara
 - [ ] `loja.config.ts`: confirmar com a Mayara a grade kids (`gradeKids`,
       hoje 4/6/8/10/12) e se toda peça sai em kids (senão, desligar
@@ -143,8 +196,7 @@ não estiver, o que segura é o tamanho da senha.
 
 ```bash
 cd loja && npm test && npm run test:worker && npm run worker:typecheck && npm run build
-cd ../painel && npm run typecheck
-cd painel && npm test
+cd ../painel && npm run typecheck && npm test
 ```
 
 Depois, sobre `loja/out/`:
@@ -165,9 +217,22 @@ Depois, sobre `loja/out/`:
   anterior continua no ar. Nunca fazer o build publicar catálogo vazio.
 - **Produto novo não apareceu** — provavelmente não passou na validação. Olhar o
   log do build; produto inválido é pulado de propósito, pra não derrubar a loja.
-- **`/api/catalogo.json` devolvendo 500** — o Worker logou `catalogo: erro no
-  banco`. Ver com `npx wrangler tail eme-praia`. Quase sempre é migration não
-  aplicada no remoto: `painel: npm run db:migrate:remote`.
+- **`/api/catalogo.json` ou `/api/disponibilidade.json` devolvendo 500** — o
+  Worker logou `loja: erro no banco`. Ver com `npx wrangler tail eme-praia`.
+  Quase sempre é migration não aplicada no remoto:
+  `painel: npm run db:migrate:remote`.
+- **"Marquei esgotado no painel e o site não mudou"** — na ordem:
+  1. Confere se gravou mesmo:
+     `curl -s https://eme-praia.pedidos-jp.workers.dev/api/disponibilidade.json | grep SLUG`.
+     Se o JSON já mostra `false`, o painel fez a parte dele.
+  2. Se o JSON mostra certo e a página não, são os 30 s de cache da borda.
+     Esperar, ou furar com `?t=1` pra confirmar.
+  3. Se o JSON mostra errado, `npx wrangler tail eme-praia` procurando
+     `loja: erro no banco`. **Um 500 nessa rota é invisível pra cliente**:
+     o `DisponibilidadeProvider` engole o erro de propósito e a página fica
+     com o estado do build. Ou seja, o site parecendo normal não prova que
+     essa rota está de pé.
+  4. Se nada disso, é a sacola: ver "Limite que fica" lá em cima.
 - **Build com "API_URL nao definida"** — falta o `loja/.env.local`. Copiar de
   `.env.example`.
 - **Clone novo: `npm run test:worker`, `worker:dev` ou `deploy` falham com erro

@@ -21,4 +21,12 @@ app.get('/', async (c) => {
   return c.html(<Tela categorias={categorias} produtos={produtos} />)
 })
 
+// Sem isto o Hono responde "Internal Server Error" e nao escreve nada: o
+// `wrangler tail eme-praia-painel` fica mudo justamente quando a Mayara
+// liga dizendo que nao abre. Espelha o onError do Worker da loja.
+app.onError((erro, c) => {
+  console.error('painel: erro nao tratado', erro)
+  return c.text('Deu erro aqui. Tenta de novo em um minuto.', 500)
+})
+
 export default app

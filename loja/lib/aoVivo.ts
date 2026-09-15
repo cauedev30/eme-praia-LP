@@ -11,7 +11,14 @@ export function aoVivo(produto: Produto, mapa: MapaDisponibilidade): Produto {
   // A checagem de forma nao e paranoia gratuita: o mapa vem de um fetch, e
   // uma entrada torta faria o `in` abaixo derrubar a arvore inteira, que
   // nao tem error boundary. Na duvida, vale o build.
-  if (!vivo || typeof vivo.tamanhos !== 'object' || vivo.tamanhos === null) return produto
+  if (
+    !vivo ||
+    typeof vivo.tamanhos !== 'object' ||
+    vivo.tamanhos === null ||
+    typeof vivo.temKids !== 'boolean'
+  ) {
+    return produto
+  }
   return {
     ...produto,
     temKids: vivo.temKids,

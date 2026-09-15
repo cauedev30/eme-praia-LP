@@ -30,7 +30,7 @@ npm install
 npm run db:migrate:local     # D1 local em ../.wrangler-state (compartilhado com a loja)
 npm run db:migrate:remote    # aplica migrations pendentes no D1 de producao
 cp .dev.vars.example .dev.vars   # e colocar a senha do painel
-npm run dev                      # localhost:8787, cai na tela de senha
+npm run dev                      # localhost:8788, cai na tela de senha
 npm run deploy
 ```
 
